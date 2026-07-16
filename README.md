@@ -1,3 +1,6 @@
+### 5.1 Universidad
+
+
 | universidad | universidad_ciudad | VARCHAR(80) | â€” | Ciudad sede. |
 | universidad | universidad_logo_url | VARCHAR(255) | â€” | URL del logo institucional. |
 | universidad | universidad_created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Fecha de registro en el sistema. |
