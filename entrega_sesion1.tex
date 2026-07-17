@@ -1,0 +1,396 @@
+\documentclass[12pt, a4paper]{article}
+
+% ── Paquetes ────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+
+% ── Encabezado / pie ────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small Bases de Datos · Sesión 1}
+\lhead{\small UniGrades}
+\cfoot{\thepage}
+
+% ── Colores ─────────────────────────────────────────────────
+\definecolor{unal}{RGB}{134, 31, 65}   % borgoña UNAL
+\hypersetup{colorlinks=true, linkcolor=unal, urlcolor=unal}
+
+% ── Título de secciones ─────────────────────────────────────
+\titleformat{\section}{\large\bfseries\color{unal}}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+
+% ============================================================
+\begin{document}
+
+% ── PORTADA ─────────────────────────────────────────────────
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\LARGE\bfseries\color{unal} UniGrades\par}
+    \vspace{0.5cm}
+    {\large Gestor de Progreso Académico Universitario\par}
+    \vspace{1.5cm}
+    {\large\bfseries Proyecto Final — Bases de Datos\par}
+    {\large Sesión 1: Kickoff y Diseño Conceptual\par}
+    \vspace{2cm}
+
+    \begin{tabular}{ll}
+        \textbf{Integrante} & Sergio Chaves \\
+        \textbf{Código}     & sechaves \\
+    \end{tabular}
+
+    \vfill
+    {\large Universidad Nacional de Colombia\par}
+    {\large Facultad de Ingeniería\par}
+    \vspace{0.5cm}
+    {\large \today\par}
+\end{titlepage}
+
+% ── 1. DESCRIPCIÓN DEL DOMINIO ──────────────────────────────
+\section{Descripción del Dominio}
+
+UniGrades es una aplicación web orientada a estudiantes universitarios que centraliza
+el seguimiento de su progreso académico a lo largo de toda la carrera. El sistema
+permite registrar las materias cursadas en cada período académico, configurar los
+componentes de evaluación de cada asignatura (parciales, talleres, proyectos, etc.)
+y registrar las calificaciones obtenidas, calculando automáticamente promedios por
+materia, por semestre y el promedio global acumulado.
+
+A diferencia de los sistemas institucionales (como el SIA de la UNAL), UniGrades
+es una herramienta personal del estudiante: él mismo configura su plan de trabajo,
+registra sus notas a medida que las recibe y visualiza su avance por tipología de
+créditos. El sistema está diseñado para ser agnóstico a la institución, soportando
+cualquier universidad, programa y escala de calificación.
+
+Una base de datos relacional es indispensable porque el dominio involucra múltiples
+entidades fuertemente relacionadas (universidad, programa, tipología, materia,
+usuario, semestre, inscripción, componente y nota), datos históricos transaccionales
+(semestres cursados, notas registradas por fecha), restricciones de integridad no
+triviales (los porcentajes de un componente deben sumar 100, la nota mínima de
+aprobación varía por materia) y consultas analíticas que cruzan varias dimensiones
+(promedio ponderado por créditos, avance por tipología, roadmap sugerido vs.\ real).
+
+% ── 2. REGLAS DE NEGOCIO ────────────────────────────────────
+\section{Reglas de Negocio}
+
+Las siguientes reglas describen las restricciones y comportamientos obligatorios del
+sistema. Cada regla indica las entidades involucradas y la restricción que impone.
+
+\begin{enumerate}[leftmargin=*, label=\textbf{RN-\arabic*.}]
+
+    \item \textbf{Un estudiante pertenece a exactamente un programa.}\\
+    \textit{Entidades:} \texttt{usuario}, \texttt{programa}.\\
+    Un \texttt{usuario} debe tener asociado un único \texttt{programa} curricular al
+    momento del registro. No puede existir un usuario sin programa asignado
+    (\texttt{usuario\_programa\_id NOT NULL}).
+
+    \item \textbf{Los porcentajes de los componentes de una materia deben sumar 100.}\\
+    \textit{Entidades:} \texttt{componente}, \texttt{materia\_usuario}.\\
+    La suma de \texttt{componente\_porcentaje} de todos los componentes asociados a
+    una misma \texttt{materia\_usuario} debe ser exactamente 100. Esta restricción
+    no puede expresarse con \texttt{NOT NULL} ni \texttt{UNIQUE}; requiere validación
+    a nivel de aplicación o trigger.
+
+    \item \textbf{Un estudiante no puede inscribir la misma materia dos veces en el mismo semestre.}\\
+    \textit{Entidades:} \texttt{materia\_usuario}, \texttt{semestre}, \texttt{materia}.\\
+    La combinación (\texttt{materia\_usuario\_usuario\_id},
+    \texttt{materia\_usuario\_materia\_id},
+    \texttt{materia\_usuario\_semestre\_id}) debe ser única. Un mismo estudiante
+    puede cursar la misma materia en semestres distintos (habilitación/repetición),
+    pero no dos veces en el mismo período.
+
+    \item \textbf{El estado de una materia sigue transiciones definidas.}\\
+    \textit{Entidades:} \texttt{materia\_usuario}.\\
+    El atributo \texttt{materia\_usuario\_estado} solo puede tomar los valores
+    \texttt{en\_curso}, \texttt{aprobada}, \texttt{reprobada} o \texttt{retirada}.
+    Una materia con estado \texttt{aprobada} o \texttt{reprobada} no puede volver a
+    \texttt{en\_curso} en el mismo registro; debe crearse una nueva inscripción en
+    otro semestre.
+
+    \item \textbf{El valor de una nota debe estar dentro del rango válido de la escala.}\\
+    \textit{Entidades:} \texttt{nota}.\\
+    \texttt{nota\_valor} debe estar entre 0.0 y 5.0 (escala colombiana estándar).
+    Valores fuera de rango deben ser rechazados por la base de datos mediante una
+    restricción \texttt{CHECK}.
+
+    \item \textbf{Las tipologías de tipo nivelación no cuentan en el promedio acumulado.}\\
+    \textit{Entidades:} \texttt{tipologia}, \texttt{materia}, \texttt{nota}.\\
+    Las materias cuya tipología tiene \texttt{tipologia\_cuenta\_promedio = 0}
+    (p.\ ej.\ Inglés I--IV en la UNAL) se excluyen del cálculo del promedio global
+    y del promedio por semestre, aunque sí se registran y se validan.
+
+    \item \textbf{Un componente acumula múltiples notas cuyo promedio define su calificación.}\\
+    \textit{Entidades:} \texttt{componente}, \texttt{nota}.\\
+    Un \texttt{componente} puede tener cero o más registros de \texttt{nota}
+    (relación 1:N). La calificación del componente se calcula como el promedio
+    aritmético de todas las notas registradas en ese momento. Esto permite modelar
+    componentes acumulativos (p.\ ej.\ ``Talleres -- 20\%'') donde la cantidad
+    de entregas no se conoce de antemano.
+
+\end{enumerate}
+
+% ── 3. DIAGRAMA E-R ─────────────────────────────────────────
+\section{Diagrama Entidad-Relación}
+
+El diagrama E-R fue elaborado en draw.io siguiendo la notación crow's foot.
+Se incluye como archivo adjunto \texttt{Diagrama E-R.drawio} y su versión
+exportada \texttt{Diagrama E-R.drawio.pdf} en el repositorio del proyecto.
+
+\subsection*{Entidades del modelo}
+
+El modelo cuenta con \textbf{9 entidades base}:
+
+\begin{itemize}
+    \item \textbf{UNIVERSIDAD} — maestra; almacena las instituciones soportadas.
+    \item \textbf{PROGRAMA} — maestra; carrera curricular dentro de una universidad.
+    \item \textbf{TIPOLOGIA} — maestra; categoría de materia dentro de un programa
+          (Obligatoria, Optativa, Libre Elección, Nivelación, etc.).
+    \item \textbf{MATERIA} — maestra; asignatura del programa con semestre sugerido (roadmap).
+    \item \textbf{USUARIO} — maestra; el estudiante registrado en la plataforma.
+    \item \textbf{SEMESTRE} — transaccional; período académico real cursado por el estudiante.
+    \item \textbf{MATERIA\_USUARIO} — asociativa ternaria (M:N con atributos);
+          vincula usuario, materia y semestre. Registra el estado de la materia.
+    \item \textbf{COMPONENTE} — transaccional; evaluación configurada por el estudiante
+          (nombre, porcentaje, nota mínima).
+    \item \textbf{NOTA} — transaccional; calificación individual dentro de un componente.
+\end{itemize}
+
+\subsection*{Relaciones M:N con atributos propios}
+
+\begin{enumerate}
+    \item \textbf{MATERIA\_USUARIO} (USUARIO × MATERIA × SEMESTRE): tabla asociativa
+    ternaria. Atributos propios: \texttt{materia\_usuario\_estado}
+    (\texttt{en\_curso / aprobada / reprobada / retirada}).
+    \item \textbf{COMPONENTE} como extensión de MATERIA\_USUARIO: cada inscripción
+    genera sus propios componentes de evaluación con atributos
+    \texttt{componente\_porcentaje} y \texttt{componente\_nota\_minima}.
+\end{enumerate}
+
+\subsection*{Jerarquía / auto-relación}
+
+La entidad \textbf{TIPOLOGIA} tiene el atributo \texttt{tipologia\_cuenta\_promedio}
+que establece una jerarquía funcional entre tipologías: aquellas con valor 0 son de
+nivelación y se comportan de forma distinta en los cálculos. Adicionalmente,
+\textbf{MATERIA} referencia a \textbf{PROGRAMA} y a \textbf{TIPOLOGIA} de forma
+simultánea, creando una dependencia cruzada que modela la estructura curricular
+jerárquica (universidad → programa → tipología → materia).
+
+\subsection*{Datos temporales}
+
+La entidad \textbf{SEMESTRE} registra \texttt{semestre\_year} y
+\texttt{semestre\_periodo}, permitiendo consultas históricas por rango de períodos
+académicos. La entidad \textbf{NOTA} registra \texttt{nota\_fecha\_registro},
+habilitando consultas cronológicas del progreso del estudiante.
+
+% ── 4. DICCIONARIO DE DATOS ─────────────────────────────────
+\section{Diccionario de Datos Preliminar}
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+
+% ── UNIVERSIDAD ─────────────────────────────────────────────
+\subsection*{UNIVERSIDAD}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+universidad\_id         & INT UNSIGNED   & PK, NOT NULL, AUTO   & Identificador único de la universidad. \\
+universidad\_nombre     & VARCHAR(150)   & NOT NULL             & Nombre oficial de la institución. \\
+universidad\_sigla      & VARCHAR(20)    & NULL                 & Sigla o acrónimo (ej. UNAL). \\
+universidad\_pais       & VARCHAR(80)    & NOT NULL, DEF Colombia & País sede de la institución. \\
+universidad\_ciudad     & VARCHAR(80)    & NULL                 & Ciudad sede. \\
+universidad\_logo\_url  & VARCHAR(255)   & NULL                 & URL del logotipo para la interfaz. \\
+universidad\_created\_at & TIMESTAMP     & DEF NOW()            & Fecha y hora de registro. \\
+\bottomrule
+\end{longtable}
+
+% ── PROGRAMA ────────────────────────────────────────────────
+\subsection*{PROGRAMA}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+programa\_id                & INT UNSIGNED   & PK, NOT NULL, AUTO   & Identificador único del programa. \\
+programa\_universidad\_id   & INT UNSIGNED   & FK, NOT NULL         & Universidad a la que pertenece. \\
+programa\_nombre            & VARCHAR(150)   & NOT NULL             & Nombre del programa curricular. \\
+programa\_facultad          & VARCHAR(150)   & NULL                 & Facultad que lo administra. \\
+programa\_total\_creditos   & SMALLINT       & NOT NULL, DEF 0      & Total de créditos para graduarse. \\
+programa\_created\_at       & TIMESTAMP      & DEF NOW()            & Fecha de registro. \\
+\bottomrule
+\end{longtable}
+
+% ── TIPOLOGIA ───────────────────────────────────────────────
+\subsection*{TIPOLOGIA}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+tipologia\_id                   & INT UNSIGNED  & PK, NOT NULL, AUTO   & Identificador único. \\
+tipologia\_programa\_id         & INT UNSIGNED  & FK, NOT NULL         & Programa al que pertenece. \\
+tipologia\_nombre               & VARCHAR(100)  & NOT NULL             & Nombre de la tipología (ej. Disciplinar Obligatoria). \\
+tipologia\_creditos\_requeridos & SMALLINT      & NOT NULL, DEF 0      & Créditos mínimos que debe completar el estudiante en esta tipología. \\
+tipologia\_cuenta\_promedio     & TINYINT(1)    & NOT NULL, DEF 1      & 1 = cuenta en el promedio; 0 = no cuenta (ej. Nivelación). \\
+tipologia\_created\_at          & TIMESTAMP     & DEF NOW()            & Fecha de registro. \\
+\bottomrule
+\end{longtable}
+
+% ── MATERIA ─────────────────────────────────────────────────
+\subsection*{MATERIA}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+materia\_id                         & INT UNSIGNED  & PK, NOT NULL, AUTO        & Identificador único. \\
+materia\_programa\_id               & INT UNSIGNED  & FK, NOT NULL              & Programa al que pertenece la materia. \\
+materia\_tipologia\_id              & INT UNSIGNED  & FK, NOT NULL              & Tipología de la materia. \\
+materia\_codigo                     & VARCHAR(30)   & NULL, UNIQUE por programa & Código libre según la universidad (ej. 1000003-B). \\
+materia\_nombre                     & VARCHAR(150)  & NOT NULL                  & Nombre oficial de la asignatura. \\
+materia\_creditos                   & TINYINT       & NOT NULL, DEF 3           & Número de créditos académicos. \\
+materia\_nota\_minima\_aprobacion   & DECIMAL(3,1)  & NOT NULL, DEF 3.0         & Nota mínima para aprobar la materia. \\
+materia\_semestre\_sugerido         & TINYINT       & NULL                      & Semestre recomendado en el roadmap del programa. \\
+materia\_created\_at                & TIMESTAMP     & DEF NOW()                 & Fecha de registro. \\
+\bottomrule
+\end{longtable}
+
+% ── USUARIO ─────────────────────────────────────────────────
+\subsection*{USUARIO}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+usuario\_id                  & INT UNSIGNED  & PK, NOT NULL, AUTO   & Identificador único del estudiante. \\
+usuario\_programa\_id        & INT UNSIGNED  & FK, NOT NULL         & Programa en el que está matriculado. \\
+usuario\_nombre              & VARCHAR(100)  & NOT NULL             & Nombre(s) del estudiante. \\
+usuario\_apellido            & VARCHAR(100)  & NOT NULL             & Apellido(s) del estudiante. \\
+usuario\_email               & VARCHAR(150)  & NOT NULL, UNIQUE     & Correo electrónico de acceso. \\
+usuario\_password\_hash      & VARCHAR(255)  & NOT NULL             & Contraseña cifrada (hash). \\
+usuario\_codigo\_estudiantil & VARCHAR(20)   & NULL                 & Código estudiantil institucional. \\
+usuario\_avatar\_url         & VARCHAR(255)  & NULL                 & URL de foto de perfil. \\
+usuario\_created\_at         & TIMESTAMP     & DEF NOW()            & Fecha de registro en la plataforma. \\
+\bottomrule
+\end{longtable}
+
+% ── SEMESTRE ────────────────────────────────────────────────
+\subsection*{SEMESTRE}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+semestre\_id         & INT UNSIGNED   & PK, NOT NULL, AUTO              & Identificador único. \\
+semestre\_usuario\_id & INT UNSIGNED  & FK, NOT NULL                    & Estudiante al que pertenece el semestre. \\
+semestre\_numero     & TINYINT        & NOT NULL                        & Número de semestre cursado por el estudiante (1, 2, 3\ldots). \\
+semestre\_year       & YEAR           & NOT NULL                        & Año académico (ej. 2025). \\
+semestre\_periodo    & TINYINT        & NOT NULL, CHECK (1 OR 2)        & Período: 1 = primer semestre, 2 = segundo semestre. \\
+semestre\_created\_at & TIMESTAMP     & DEF NOW()                       & Fecha de creación del registro. \\
+\bottomrule
+\end{longtable}
+
+% ── MATERIA_USUARIO ─────────────────────────────────────────
+\subsection*{MATERIA\_USUARIO}
+\begin{longtable}{>{\ttfamily}p{4.8cm} p{2.5cm} p{3.2cm} p{4.2cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+materia\_usuario\_id           & INT UNSIGNED & PK, NOT NULL, AUTO           & Identificador único de la inscripción. \\
+materia\_usuario\_usuario\_id  & INT UNSIGNED & FK, NOT NULL                 & Estudiante que cursa la materia. \\
+materia\_usuario\_materia\_id  & INT UNSIGNED & FK, NOT NULL                 & Materia inscrita. \\
+materia\_usuario\_semestre\_id & INT UNSIGNED & FK, NOT NULL                 & Semestre en que se cursa. \\
+materia\_usuario\_estado       & ENUM         & NOT NULL, DEF en\_curso      & Estado: en\_curso / aprobada / reprobada / retirada. \\
+materia\_usuario\_created\_at  & TIMESTAMP    & DEF NOW()                    & Fecha de registro de la inscripción. \\
+\bottomrule
+\end{longtable}
+
+% ── COMPONENTE ──────────────────────────────────────────────
+\subsection*{COMPONENTE}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+componente\_id                   & INT UNSIGNED  & PK, NOT NULL, AUTO   & Identificador único del componente. \\
+componente\_materia\_usuario\_id & INT UNSIGNED  & FK, NOT NULL         & Inscripción a la que pertenece el componente. \\
+componente\_nombre               & VARCHAR(100)  & NOT NULL             & Nombre del componente (ej. Parcial 01, Talleres). \\
+componente\_porcentaje           & DECIMAL(5,2)  & NOT NULL             & Peso del componente en la nota final (0.00--100.00). \\
+componente\_nota\_minima         & DECIMAL(3,1)  & NULL                 & Nota mínima para superar el componente (opcional). \\
+componente\_orden                & TINYINT       & NOT NULL, DEF 1      & Orden de visualización del componente. \\
+componente\_created\_at          & TIMESTAMP     & DEF NOW()            & Fecha de creación. \\
+\bottomrule
+\end{longtable}
+
+% ── NOTA ────────────────────────────────────────────────────
+\subsection*{NOTA}
+\begin{longtable}{>{\ttfamily}p{4.5cm} p{2.5cm} p{3.2cm} p{4.5cm}}
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endfirsthead
+\toprule
+\normalfont\textbf{Atributo} & \textbf{Tipo} & \textbf{Restricción} & \textbf{Descripción} \\
+\midrule
+\endhead
+nota\_id              & INT UNSIGNED  & PK, NOT NULL, AUTO             & Identificador único de la nota. \\
+nota\_componente\_id  & INT UNSIGNED  & FK, NOT NULL                   & Componente al que pertenece la nota. \\
+nota\_nombre          & VARCHAR(100)  & NOT NULL                       & Identificador de la entrega (ej. Taller 1, Quiz 3). \\
+nota\_valor           & DECIMAL(3,1)  & NOT NULL, CHECK (0.0--5.0)     & Calificación obtenida en escala 0.0--5.0. \\
+nota\_fecha\_registro & DATE          & NULL                           & Fecha en que se recibió o registró la nota. \\
+nota\_observacion     & VARCHAR(255)  & NULL                           & Comentario opcional del estudiante. \\
+nota\_created\_at     & TIMESTAMP     & DEF NOW()                      & Fecha de creación del registro. \\
+\bottomrule
+\end{longtable}
+
+\endgroup
+
+\end{document}
