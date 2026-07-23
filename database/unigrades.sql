@@ -195,9 +195,6 @@ CREATE TABLE materia_prerrequisito (
     CONSTRAINT pk_materia_prerrequisito
         PRIMARY KEY (materia_id, prerrequisito_materia_id),
 
-    CONSTRAINT chk_prerrequisito_diferente
-        CHECK (materia_id != prerrequisito_materia_id),
-
     CONSTRAINT fk_mp_materia
         FOREIGN KEY (materia_id)
         REFERENCES materia (materia_id)
@@ -224,9 +221,6 @@ CREATE TABLE materia_correquisito (
 
     CONSTRAINT pk_materia_correquisito
         PRIMARY KEY (materia_id, correquisito_materia_id),
-
-    CONSTRAINT chk_correquisito_diferente
-        CHECK (materia_id != correquisito_materia_id),
 
     CONSTRAINT fk_mc_materia
         FOREIGN KEY (materia_id)

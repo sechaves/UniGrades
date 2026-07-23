@@ -16,6 +16,40 @@
 USE unigrades;
 
 -- ============================================================
+-- TRIGGERS AUXILIARES: validar que una materia no sea
+-- prerrequisito ni correquisito de sí misma.
+-- MySQL 3823 impide CHECK en columnas FK, se resuelve con trigger.
+-- ============================================================
+
+DELIMITER $$
+
+CREATE TRIGGER trg_validar_prerrequisito_diferente
+BEFORE INSERT ON materia_prerrequisito
+FOR EACH ROW
+BEGIN
+    IF NEW.materia_id = NEW.prerrequisito_materia_id THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Una materia no puede ser prerrequisito de sí misma.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+DELIMITER $$
+
+CREATE TRIGGER trg_validar_correquisito_diferente
+BEFORE INSERT ON materia_correquisito
+FOR EACH ROW
+BEGIN
+    IF NEW.materia_id = NEW.correquisito_materia_id THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Una materia no puede ser correquisito de sí misma.';
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- ============================================================
 -- TRIGGER 1: trg_validar_porcentaje_componente
 --
 -- Propósito: garantizar que la suma de porcentajes de todos los
