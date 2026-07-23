@@ -378,15 +378,15 @@ DELIMITER ;
 --   1. El semestre debe pertenecer al usuario.
 --   2. La materia debe pertenecer al mismo programa del usuario.
 --   3. La materia no puede estar ya inscrita en ese semestre.
---   4. Si la materia fue reprobada antes, permite reinscripción
+--   4. Todos los prerrequisitos deben estar aprobados.
+--   5. Si la materia fue reprobada antes, permite reinscripción
 --      en un semestre diferente.
 --
 -- Parámetros:
 --   p_usuario_id  → id del estudiante
 --   p_materia_id  → id de la materia a inscribir
 --   p_semestre_id → id del semestre destino
---
--- Retorna: mensaje de confirmación o error descriptivo
+--   p_mensaje     → OUT: resultado de la operación
 -- ============================================================
 
 DELIMITER $$
@@ -398,12 +398,14 @@ CREATE PROCEDURE sp_inscribir_materia(
     OUT p_mensaje     VARCHAR(255)
 )
 BEGIN
-    DECLARE v_programa_usuario     INT UNSIGNED;
-    DECLARE v_programa_materia     INT UNSIGNED;
-    DECLARE v_semestre_usuario     INT UNSIGNED;
-    DECLARE v_ya_aprobada          TINYINT DEFAULT 0;
-    DECLARE v_ya_inscrita_semestre TINYINT DEFAULT 0;
-    DECLARE v_nuevo_id             INT UNSIGNED;
+    DECLARE v_programa_usuario         INT UNSIGNED;
+    DECLARE v_programa_materia         INT UNSIGNED;
+    DECLARE v_semestre_usuario         INT UNSIGNED;
+    DECLARE v_ya_aprobada              TINYINT DEFAULT 0;
+    DECLARE v_ya_inscrita_semestre     TINYINT DEFAULT 0;
+    DECLARE v_prereqs_pendientes       INT DEFAULT 0;
+    DECLARE v_nombre_prereq_pendiente  VARCHAR(150) DEFAULT '';
+    DECLARE v_nuevo_id                 INT UNSIGNED;
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -458,9 +460,9 @@ BEGIN
     FROM   materia_usuario AS mu
     INNER JOIN semestre    AS s
         ON s.semestre_id = mu.materia_usuario_semestre_id
-    WHERE  s.semestre_usuario_id     = p_usuario_id
-      AND  mu.materia_usuario_materia_id = p_materia_id
-      AND  mu.materia_usuario_estado  = 'aprobada';
+    WHERE  s.semestre_usuario_id           = p_usuario_id
+      AND  mu.materia_usuario_materia_id   = p_materia_id
+      AND  mu.materia_usuario_estado       = 'aprobada';
 
     IF v_ya_aprobada > 0 THEN
         SET p_mensaje = 'La materia ya fue aprobada. No es necesario inscribirla nuevamente.';
@@ -481,7 +483,36 @@ BEGIN
         LEAVE sp_inscribir_materia;
     END IF;
 
-    -- 6. Insertar la inscripción
+    -- 6. Validar prerrequisitos: todos deben estar aprobados
+    SELECT COUNT(*),
+           COALESCE(MIN(m_pre.materia_nombre), '')
+    INTO   v_prereqs_pendientes,
+           v_nombre_prereq_pendiente
+    FROM   materia_prerrequisito AS mp
+    INNER JOIN materia AS m_pre
+        ON m_pre.materia_id = mp.prerrequisito_materia_id
+    WHERE  mp.materia_id = p_materia_id
+      AND  NOT EXISTS (
+               SELECT 1
+               FROM   materia_usuario AS mu_pre
+               INNER JOIN semestre    AS s_pre
+                   ON s_pre.semestre_id = mu_pre.materia_usuario_semestre_id
+               WHERE  s_pre.semestre_usuario_id         = p_usuario_id
+                 AND  mu_pre.materia_usuario_materia_id = mp.prerrequisito_materia_id
+                 AND  mu_pre.materia_usuario_estado     = 'aprobada'
+           );
+
+    IF v_prereqs_pendientes > 0 THEN
+        SET p_mensaje = CONCAT(
+            'Prerrequisito(s) no aprobado(s). Ejemplo pendiente: "',
+            v_nombre_prereq_pendiente, '". Total faltantes: ',
+            v_prereqs_pendientes
+        );
+        ROLLBACK;
+        LEAVE sp_inscribir_materia;
+    END IF;
+
+    -- 7. Insertar la inscripción
     INSERT INTO materia_usuario
         (materia_usuario_materia_id, materia_usuario_semestre_id, materia_usuario_estado)
     VALUES

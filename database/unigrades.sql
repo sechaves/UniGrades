@@ -36,6 +36,8 @@ DROP TABLE IF EXISTS componente;
 DROP TABLE IF EXISTS materia_usuario;
 DROP TABLE IF EXISTS semestre;
 DROP TABLE IF EXISTS usuario;
+DROP TABLE IF EXISTS materia_correquisito;
+DROP TABLE IF EXISTS materia_prerrequisito;
 DROP TABLE IF EXISTS materia;
 DROP TABLE IF EXISTS tipologia;
 DROP TABLE IF EXISTS programa;
@@ -177,6 +179,66 @@ CREATE TABLE materia (
         ON UPDATE CASCADE
 ) ENGINE = InnoDB
   COMMENT = 'Materias que componen las tipologías de cada programa';
+
+-- ============================================================
+-- TABLA: MATERIA_PRERREQUISITO
+-- Relaciona una materia con sus prerrequisitos.
+-- Auto-relación sobre MATERIA. Un prerrequisito debe aprobarse
+-- antes de poder inscribir la materia destino.
+-- ============================================================
+
+CREATE TABLE materia_prerrequisito (
+    materia_id                INT UNSIGNED NOT NULL,
+    prerrequisito_materia_id  INT UNSIGNED NOT NULL,
+    created_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_materia_prerrequisito
+        PRIMARY KEY (materia_id, prerrequisito_materia_id),
+
+    CONSTRAINT chk_prerrequisito_diferente
+        CHECK (materia_id != prerrequisito_materia_id),
+
+    CONSTRAINT fk_mp_materia
+        FOREIGN KEY (materia_id)
+        REFERENCES materia (materia_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT fk_mp_prerrequisito
+        FOREIGN KEY (prerrequisito_materia_id)
+        REFERENCES materia (materia_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB
+  COMMENT = 'Prerrequisitos asociados a cada materia';
+
+-- ============================================================
+-- TABLA: MATERIA_CORREQUISITO
+-- Relaciona una materia con sus correquisitos.
+-- Auto-relación sobre MATERIA. Un correquisito debe cursarse
+-- simultáneamente o haberse aprobado previamente.
+-- ============================================================
+
+CREATE TABLE materia_correquisito (
+    materia_id                INT UNSIGNED NOT NULL,
+    correquisito_materia_id   INT UNSIGNED NOT NULL,
+    created_at                TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT pk_materia_correquisito
+        PRIMARY KEY (materia_id, correquisito_materia_id),
+
+    CONSTRAINT chk_correquisito_diferente
+        CHECK (materia_id != correquisito_materia_id),
+
+    CONSTRAINT fk_mc_materia
+        FOREIGN KEY (materia_id)
+        REFERENCES materia (materia_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT fk_mc_correquisito
+        FOREIGN KEY (correquisito_materia_id)
+        REFERENCES materia (materia_id)
+        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB
+  COMMENT = 'Correquisitos asociados a cada materia';
 
 -- ============================================================
 -- TABLA: USUARIO
@@ -419,6 +481,14 @@ CREATE INDEX idx_nota_componente_fecha
         nota_componente_id,
         nota_fecha_registro
     );
+
+-- Índice para consultar todos los prerrequisitos de una materia.
+CREATE INDEX idx_prerrequisito_materia
+    ON materia_prerrequisito (prerrequisito_materia_id);
+
+-- Índice para consultar todos los correquisitos de una materia.
+CREATE INDEX idx_correquisito_materia
+    ON materia_correquisito (correquisito_materia_id);
 
 -- ============================================================
 -- VISTAS
