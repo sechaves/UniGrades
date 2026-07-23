@@ -1,13 +1,19 @@
 -- ============================================================
 -- UNIGRADES - 02_dml.sql
--- Poblamiento de datos: universidades, usuarios y semestres
--- Sesión 3 - DML
+-- Archivo DML único fusionado y corregido:
+--   1. Universidades (10)
+--   2. Programas (10)
+--   3. Tipologías (10)
+--   4. Materias por Tipología
+--   5. Prerrequisitos y Correquisitos
+--   6. Usuarios (200)
+--   7. Semestres
 -- ============================================================
 
 USE unigrades;
 
 -- ============================================================
--- UNIVERSIDADES (10 instituciones reales de Colombia)
+-- 1. UNIVERSIDADES (10 instituciones reales de Colombia)
 -- ============================================================
 
 INSERT INTO universidad (universidad_nombre, universidad_sigla, universidad_pais, universidad_ciudad) VALUES
@@ -23,9 +29,281 @@ INSERT INTO universidad (universidad_nombre, universidad_sigla, universidad_pais
 ('Universidad Distrital Francisco José de Caldas','UDFJC','Colombia','Bogotá');
 
 -- ============================================================
--- USUARIOS (200 estudiantes, programa_id entre 1 y 10 asumiendo
--- que tu compañero creará al menos un programa por universidad)
--- Contraseña de todos: Test1234! → hash bcrypt placeholder
+-- 2. PROGRAMAS ACADÉMICOS
+-- Se crea un programa por cada universidad para asegurar
+-- que existan los programa_id del 1 al 10 para los usuarios.
+-- ============================================================
+
+INSERT INTO programa (programa_universidad_id, programa_nombre, programa_facultad, programa_total_creditos)
+SELECT universidad_id, 'Ciencias de la Computación', 'Facultad de Ciencias', 139
+FROM   universidad
+ORDER BY universidad_id;
+
+-- ============================================================
+-- 3. TIPOLOGÍAS
+-- Se enlazan al programa de la UNAL Bogotá (programa_id = 1).
+-- ============================================================
+
+INSERT INTO tipologia (tipologia_programa_id, tipologia_nombre, tipologia_creditos_requeridos, tipologia_cuenta_promedio)
+SELECT p.programa_id, t.nombre, t.creditos, 1
+FROM   programa AS p
+CROSS  JOIN (
+    SELECT 'Matemáticas y Estructuras Discretas'          AS nombre, 48 AS creditos UNION ALL
+    SELECT 'Ciencias Naturales y Estadística',             3  UNION ALL
+    SELECT 'Programación y Estructuras de Datos',          9  UNION ALL
+    SELECT 'Algoritmos y Teoría de la Computación',       14  UNION ALL
+    SELECT 'Seguridad Informática y Codificación',         7  UNION ALL
+    SELECT 'Sistemas Operativos, de Cómputo y Compiladores', 9 UNION ALL
+    SELECT 'Computación Científica',                       7  UNION ALL
+    SELECT 'Computación Aplicada',                         6  UNION ALL
+    SELECT 'Trabajo de Grado',                             8  UNION ALL
+    SELECT 'Libre Elección',                              28
+) AS t
+WHERE  p.programa_universidad_id = 1
+  AND  p.programa_nombre = 'Ciencias de la Computación'
+LIMIT  10;
+
+-- ============================================================
+-- 4. MATERIAS POR TIPOLOGÍA
+-- ============================================================
+
+-- Matemáticas y Estructuras Discretas
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2015168' AS codigo, 'Fundamentos de matemáticas'                       AS nombre, 4 AS creditos UNION ALL
+    SELECT '2015181', 'Sistemas numéricos',                                         4 UNION ALL
+    SELECT '2025819', 'Introducción a la teoría de conjuntos',                      4 UNION ALL
+    SELECT '2015555', 'Algebra lineal básica',                                      4 UNION ALL
+    SELECT '2016377', 'Cálculo diferencial en una variable',                        4 UNION ALL
+    SELECT '2015556', 'Cálculo integral en una variable',                           4 UNION ALL
+    SELECT '2015162', 'Cálculo vectorial',                                          4 UNION ALL
+    SELECT '2016342', 'Cálculo de ecuaciones diferenciales ordinarias',             4 UNION ALL
+    SELECT '2015155', 'Introducción al análisis real',                              4 UNION ALL
+    SELECT '2015178', 'Probabilidad',                                               4 UNION ALL
+    SELECT '2015152', 'Grupos y anillos',                                           4 UNION ALL
+    SELECT '2015184', 'Teoría de grafos',                                           4 UNION ALL
+    SELECT '2027312', 'Introducción al análisis combinatorio',                      4 UNION ALL
+    SELECT '2028838', 'Cadenas de markov y aplicaciones',                           4
+) AS m
+WHERE  t.tipologia_nombre = 'Matemáticas y Estructuras Discretas';
+
+-- Ciencias Naturales y Estadística
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '1000010' AS codigo, 'Biología molecular y celular'              AS nombre, 3 AS creditos UNION ALL
+    SELECT '1000013', 'Probabilidad y estadística fundamental',              3 UNION ALL
+    SELECT '1000041', 'Química básica',                                      3 UNION ALL
+    SELECT '2015176', 'Mecánica newtoniana',                                 4 UNION ALL
+    SELECT '2016651', 'Fundamentos de física teórica',                       3 UNION ALL
+    SELECT '2022689', 'Fundamentos de física',                               3
+) AS m
+WHERE  t.tipologia_nombre = 'Ciencias Naturales y Estadística';
+
+-- Programación y Estructuras de Datos
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2026573' AS codigo, 'Introducción a las ciencias de la computación y a la programación' AS nombre, 3 AS creditos UNION ALL
+    SELECT '2016375', 'Programación orientada a objetos',                    3 UNION ALL
+    SELECT '2016699', 'Estructuras de datos',                                3
+) AS m
+WHERE  t.tipologia_nombre = 'Programación y Estructuras de Datos';
+
+-- Algoritmos y Teoría de la Computación
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2016696' AS codigo, 'Algoritmos'                                        AS nombre, 3 AS creditos UNION ALL
+    SELECT '2015174', 'Introducción a la teoría de la computación',                 4 UNION ALL
+    SELECT '2026555', 'Algebra abstracta y computacional',                          4 UNION ALL
+    SELECT '2019267', 'Teoría de la recursión',                                     4 UNION ALL
+    SELECT '2027628', 'Teoría de lenguajes formales',                               3 UNION ALL
+    SELECT '2027629', 'Lógica computacional',                                       3 UNION ALL
+    SELECT '2028641', 'Quantum computer programming',                               4 UNION ALL
+    SELECT '2029273', 'Advanced data structures',                                   4 UNION ALL
+    SELECT '2029274', 'Topics on advanced algorithms',                              4 UNION ALL
+    SELECT '2029275', 'Complejidad computacional',                                  4
+) AS m
+WHERE  t.tipologia_nombre = 'Algoritmos y Teoría de la Computación';
+
+-- Seguridad Informática y Codificación
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2027311' AS codigo, 'Introducción a la criptografía y a la teoría de información' AS nombre, 4 AS creditos UNION ALL
+    SELECT '2027310', 'Criptografía',                                                3 UNION ALL
+    SELECT '2027313', 'Teoría de la codificación',                                   4
+) AS m
+WHERE  t.tipologia_nombre = 'Seguridad Informática y Codificación';
+
+-- Sistemas Operativos, de Cómputo y Compiladores
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2016698' AS codigo, 'Elementos de computadores'              AS nombre, 3 AS creditos UNION ALL
+    SELECT '2016707', 'Sistemas operativos',                              3 UNION ALL
+    SELECT '2016697', 'Arquitectura de computadores',                     3 UNION ALL
+    SELECT '2016722', 'Computación paralela y distribuida',               3 UNION ALL
+    SELECT '2025966', 'Lenguajes de programación',                        3 UNION ALL
+    SELECT '2027642', 'Compiladores',                                     3
+) AS m
+WHERE  t.tipologia_nombre = 'Sistemas Operativos, de Cómputo y Compiladores';
+
+-- Computación Científica
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2019072' AS codigo, 'Análisis numérico I'                                         AS nombre, 4 AS creditos UNION ALL
+    SELECT '2015173', 'Introducción a la optimización',                                        4 UNION ALL
+    SELECT '2019082', 'Modelos matemáticos I',                                                 4 UNION ALL
+    SELECT '2019103', 'Análisis numérico II',                                                  4 UNION ALL
+    SELECT '2025971', 'Optimización',                                                          3 UNION ALL
+    SELECT '2026377', 'Métodos numéricos en finanzas',                                         4 UNION ALL
+    SELECT '2026519', 'Ecuaciones en diferencias finitas y sistemas dinámicos',                4 UNION ALL
+    SELECT '2028836', 'Álgebra lineal numérica',                                               4
+) AS m
+WHERE  t.tipologia_nombre = 'Computación Científica';
+
+-- Computación Aplicada
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2016353' AS codigo, 'Bases de datos'                                            AS nombre, 3 AS creditos UNION ALL
+    SELECT '2016701', 'Ingeniería de software I',                                            3 UNION ALL
+    SELECT '2025196', 'Introducción a la biología computacional',                            4 UNION ALL
+    SELECT '2025960', 'Computación visual',                                                  3 UNION ALL
+    SELECT '2025967', 'Redes de computadores',                                               3 UNION ALL
+    SELECT '2025995', 'Introducción a los sistemas inteligentes',                            3 UNION ALL
+    SELECT '2027309', 'Análisis forense digital',                                            4 UNION ALL
+    SELECT '2027631', 'Tópicos de aprendizaje de máquinas',                                 3 UNION ALL
+    SELECT '2027632', 'Introducción a la inteligencia artificial',                           3 UNION ALL
+    SELECT '2027641', 'Tópicos de computación aplicada',                                    3 UNION ALL
+    SELECT '2028837', 'Matemáticas del aprendizaje de máquinas',                            4 UNION ALL
+    SELECT '2028839', 'Fundamentos de analítica de datos y aplicaciones',                   4 UNION ALL
+    SELECT '2029090', 'Redes neuronales, arquitecturas y aplicaciones',                     4 UNION ALL
+    SELECT '2029272', 'Práctica Profesional',                                                6
+) AS m
+WHERE  t.tipologia_nombre = 'Computación Aplicada';
+
+-- Trabajo de Grado
+INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, materia_creditos)
+SELECT t.tipologia_id, m.codigo, m.nombre, m.creditos
+FROM   tipologia AS t
+CROSS  JOIN (
+    SELECT '2027633' AS codigo, 'Trabajo de Grado - Trabajos investigativos' AS nombre, 8 AS creditos UNION ALL
+    SELECT '2027634', 'Trabajo de Grado - Asignaturas de Posgrado',           8 UNION ALL
+    SELECT '2027636', 'Trabajo de Grado - Pasantías',                         8
+) AS m
+WHERE  t.tipologia_nombre = 'Trabajo de Grado';
+
+-- ============================================================
+-- 5. PRERREQUISITOS Y CORREQUISITOS
+-- ============================================================
+
+INSERT INTO materia_prerrequisito (materia_id, prerrequisito_materia_id) VALUES
+-- Matemáticas
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015181'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015168')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025819'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015181')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015556'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016377')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015162'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015556')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016342'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015555')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016342'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015556')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015155'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015162')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015155'), (SELECT materia_id FROM materia WHERE materia_codigo = '2025819')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015178'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015556')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015152'), (SELECT materia_id FROM materia WHERE materia_codigo = '2025819')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015184'), (SELECT materia_id FROM materia WHERE materia_codigo = '2025819')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027312'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015181')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028838'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028838'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015555')),
+-- Programación
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016375'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016699'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016375')),
+-- Algoritmos
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016696'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015174'), (SELECT materia_id FROM materia WHERE materia_codigo = '2025819')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2026555'), (SELECT materia_id FROM materia WHERE materia_codigo = '2025819')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2019267'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015174')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027628'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015174')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027629'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015174')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027629'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015555')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028641'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016696')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028641'), (SELECT materia_id FROM materia WHERE materia_codigo = '2025819')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029273'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029273'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016696')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029274'), (SELECT materia_id FROM materia WHERE materia_codigo = '2025819')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029274'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029274'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015555')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029274'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016696')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029275'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015174')),
+-- Seguridad
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027311'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027311'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015181')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027311'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027310'), (SELECT materia_id FROM materia WHERE materia_codigo = '2027311')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027313'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015152')),
+-- Sistemas y Compiladores
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016698'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016707'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016698')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016697'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016698')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016722'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016696')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025966'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015174')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025966'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027642'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015174')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027642'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+-- Computación Científica
+((SELECT materia_id FROM materia WHERE materia_codigo = '2019072'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015155')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2019072'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015173'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015162')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015173'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2019082'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016342')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2019103'), (SELECT materia_id FROM materia WHERE materia_codigo = '2019072')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2019103'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015162')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025971'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025971'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016342')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2026377'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2026519'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2026519'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016342')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028836'), (SELECT materia_id FROM materia WHERE materia_codigo = '2019072')),
+-- Computación Aplicada
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016353'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016701'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025196'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015555')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025196'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025960'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016696')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025967'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016698')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025967'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2025995'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016696')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027309'), (SELECT materia_id FROM materia WHERE materia_codigo = '2027311')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027631'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015162')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027631'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027631'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016696')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027641'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2027632'), (SELECT materia_id FROM materia WHERE materia_codigo = '2019072')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028837'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015162')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028837'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028837'), (SELECT materia_id FROM materia WHERE materia_codigo = '2026573')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028839'), (SELECT materia_id FROM materia WHERE materia_codigo = '2015178')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2028839'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016699')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2029090'), (SELECT materia_id FROM materia WHERE materia_codigo = '2028837'));
+
+INSERT INTO materia_correquisito (materia_id, correquisito_materia_id) VALUES
+((SELECT materia_id FROM materia WHERE materia_codigo = '2015176'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016377')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2016651'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016377')),
+((SELECT materia_id FROM materia WHERE materia_codigo = '2022689'), (SELECT materia_id FROM materia WHERE materia_codigo = '2016377'));
+
+-- ============================================================
+-- 6. USUARIOS (200 estudiantes)
 -- ============================================================
 
 INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usuario_email, usuario_password_hash, usuario_codigo_estudiantil) VALUES
@@ -80,6 +358,7 @@ INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usua
 (4,'Ernesto','Campos','ecampos@javeriana.edu.co','$2b$10$hashed_placeholder_049','4001009'),
 (4,'Claudia','Varela','cvarela@javeriana.edu.co','$2b$10$hashed_placeholder_050','4001010');
 
+INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usuario_email, usuario_password_hash, usuario_codigo_estudiantil) VALUES
 (5,'Fernando','Ossa','fossa@eafit.edu.co','$2b$10$hashed_placeholder_051','5001001'),
 (5,'Andrea','Zapata','azapata@eafit.edu.co','$2b$10$hashed_placeholder_052','5001002'),
 (5,'Hernán','Cano','hcano@eafit.edu.co','$2b$10$hashed_placeholder_053','5001003'),
@@ -129,7 +408,9 @@ INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usua
 (9,'Brayan','Castaño','bcastano@utp.edu.co','$2b$10$hashed_placeholder_097','9001007'),
 (9,'Heidy','Marín','hmarin@utp.edu.co','$2b$10$hashed_placeholder_098','9001008'),
 (9,'Cristian','Ospina','cospina@utp.edu.co','$2b$10$hashed_placeholder_099','9001009'),
-(9,'Vanessa','Largo','vlargo@utp.edu.co','$2b$10$hashed_placeholder_100','9001010'),
+(9,'Vanessa','Largo','vlargo@utp.edu.co','$2b$10$hashed_placeholder_100','9001010');
+
+INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usuario_email, usuario_password_hash, usuario_codigo_estudiantil) VALUES
 (10,'Yesid','Bernal','ybernal@udistrital.edu.co','$2b$10$hashed_placeholder_101','101001001'),
 (10,'Karen','Nieto','knieto@udistrital.edu.co','$2b$10$hashed_placeholder_102','101001002'),
 (10,'Germán','Rincón','grincon@udistrital.edu.co','$2b$10$hashed_placeholder_103','101001003'),
@@ -141,7 +422,6 @@ INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usua
 (10,'Harold','Becerra','hbecerra@udistrital.edu.co','$2b$10$hashed_placeholder_109','101001009'),
 (10,'Luisa','Trujillo','ltrujillo@udistrital.edu.co','$2b$10$hashed_placeholder_110','101001010');
 
--- Usuarios 111-200: segunda ronda con variación de programas
 INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usuario_email, usuario_password_hash, usuario_codigo_estudiantil) VALUES
 (1,'José','Pinzón','jpinzon@unal.edu.co','$2b$10$hashed_placeholder_111','1000223001'),
 (1,'María','Bohórquez','mbohorquez@unal.edu.co','$2b$10$hashed_placeholder_112','1000223002'),
@@ -194,6 +474,7 @@ INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usua
 (5,'Camilo','Aristizábal','caristizabal@eafit.edu.co','$2b$10$hashed_placeholder_159','5002005'),
 (5,'Gloria','Ochoa','gochoa@eafit.edu.co','$2b$10$hashed_placeholder_160','5002006');
 
+INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usuario_email, usuario_password_hash, usuario_codigo_estudiantil) VALUES
 (6,'Javier','Zapata','jzapata@udea.edu.co','$2b$10$hashed_placeholder_161','6002005'),
 (6,'Diana','Osorio','dosorio@udea.edu.co','$2b$10$hashed_placeholder_162','6002006'),
 (7,'Ernesto','Bejarano','ebejarano@univalle.edu.co','$2b$10$hashed_placeholder_163','7002005'),
@@ -236,10 +517,7 @@ INSERT INTO usuario (usuario_programa_id, usuario_nombre, usuario_apellido, usua
 (5,'Stefany','Naranjo','snaranjo@eafit.edu.co','$2b$10$hashed_placeholder_200','5002010');
 
 -- ============================================================
--- SEMESTRES
--- 5-7 semestres por usuario → >1000 filas en total
--- semestre_numero representa el semestre del estudiante (1-15)
--- semestre_year y semestre_periodo representan el calendario real
+-- 7. SEMESTRES
 -- ============================================================
 
 INSERT INTO semestre (semestre_usuario_id, semestre_numero, semestre_year, semestre_periodo) VALUES
@@ -353,135 +631,3 @@ INSERT INTO semestre (semestre_usuario_id, semestre_numero, semestre_year, semes
 (78,1,2024,2),(78,2,2025,1),(78,3,2025,2),(78,4,2026,1),
 (79,1,2023,1),(79,2,2023,2),(79,3,2024,1),(79,4,2024,2),(79,5,2025,1),
 (80,1,2024,1),(80,2,2024,2),(80,3,2025,1);
-
-INSERT INTO semestre (semestre_usuario_id, semestre_numero, semestre_year, semestre_periodo) VALUES
--- Usuarios 81-110 (UIS + UTP + UDFJC)
-(81,1,2023,1),(81,2,2023,2),(81,3,2024,1),(81,4,2024,2),(81,5,2025,1),
-(82,1,2024,1),(82,2,2024,2),(82,3,2025,1),(82,4,2025,2),(82,5,2026,1),
-(83,1,2022,2),(83,2,2023,1),(83,3,2023,2),(83,4,2024,1),(83,5,2024,2),(83,6,2025,1),
-(84,1,2023,2),(84,2,2024,1),(84,3,2024,2),(84,4,2025,1),
-(85,1,2024,1),(85,2,2024,2),(85,3,2025,1),(85,4,2025,2),
-(86,1,2023,1),(86,2,2023,2),(86,3,2024,1),(86,4,2024,2),(86,5,2025,1),(86,6,2025,2),(86,7,2026,1),
-(87,1,2022,1),(87,2,2022,2),(87,3,2023,1),(87,4,2023,2),(87,5,2024,1),
-(88,1,2024,2),(88,2,2025,1),(88,3,2025,2),
-(89,1,2023,1),(89,2,2023,2),(89,3,2024,1),(89,4,2024,2),(89,5,2025,1),
-(90,1,2024,1),(90,2,2024,2),(90,3,2025,1),(90,4,2025,2),
-(91,1,2023,2),(91,2,2024,1),(91,3,2024,2),(91,4,2025,1),(91,5,2025,2),
-(92,1,2024,1),(92,2,2024,2),(92,3,2025,1),
-(93,1,2022,2),(93,2,2023,1),(93,3,2023,2),(93,4,2024,1),(93,5,2024,2),(93,6,2025,1),(93,7,2025,2),
-(94,1,2023,1),(94,2,2023,2),(94,3,2024,1),(94,4,2024,2),
-(95,1,2024,1),(95,2,2024,2),(95,3,2025,1),(95,4,2025,2),(95,5,2026,1),
-(96,1,2023,1),(96,2,2023,2),(96,3,2024,1),(96,4,2024,2),(96,5,2025,1),
-(97,1,2022,1),(97,2,2022,2),(97,3,2023,1),(97,4,2023,2),(97,5,2024,1),(97,6,2024,2),
-(98,1,2024,2),(98,2,2025,1),(98,3,2025,2),(98,4,2026,1),
-(99,1,2023,1),(99,2,2023,2),(99,3,2024,1),(99,4,2024,2),(99,5,2025,1),(99,6,2025,2),
-(100,1,2024,1),(100,2,2024,2),(100,3,2025,1),
-(101,1,2023,1),(101,2,2023,2),(101,3,2024,1),(101,4,2024,2),(101,5,2025,1),
-(102,1,2024,1),(102,2,2024,2),(102,3,2025,1),(102,4,2025,2),
-(103,1,2022,2),(103,2,2023,1),(103,3,2023,2),(103,4,2024,1),(103,5,2024,2),(103,6,2025,1),
-(104,1,2023,2),(104,2,2024,1),(104,3,2024,2),(104,4,2025,1),(104,5,2025,2),
-(105,1,2024,1),(105,2,2024,2),(105,3,2025,1),
-(106,1,2023,1),(106,2,2023,2),(106,3,2024,1),(106,4,2024,2),(106,5,2025,1),(106,6,2025,2),(106,7,2026,1),
-(107,1,2022,1),(107,2,2022,2),(107,3,2023,1),(107,4,2023,2),(107,5,2024,1),
-(108,1,2024,2),(108,2,2025,1),(108,3,2025,2),
-(109,1,2023,1),(109,2,2023,2),(109,3,2024,1),(109,4,2024,2),(109,5,2025,1),
-(110,1,2024,1),(110,2,2024,2),(110,3,2025,1),(110,4,2025,2),(110,5,2026,1);
-
-INSERT INTO semestre (semestre_usuario_id, semestre_numero, semestre_year, semestre_periodo) VALUES
--- Usuarios 111-200 (segunda ronda, todos los programas)
-(111,1,2024,1),(111,2,2024,2),(111,3,2025,1),(111,4,2025,2),
-(112,1,2024,1),(112,2,2024,2),(112,3,2025,1),
-(113,1,2023,2),(113,2,2024,1),(113,3,2024,2),(113,4,2025,1),(113,5,2025,2),
-(114,1,2024,1),(114,2,2024,2),(114,3,2025,1),(114,4,2025,2),(114,5,2026,1),
-(115,1,2023,1),(115,2,2023,2),(115,3,2024,1),(115,4,2024,2),(115,5,2025,1),
-(116,1,2024,2),(116,2,2025,1),(116,3,2025,2),
-(117,1,2023,1),(117,2,2023,2),(117,3,2024,1),(117,4,2024,2),
-(118,1,2024,1),(118,2,2024,2),(118,3,2025,1),(118,4,2025,2),
-(119,1,2023,2),(119,2,2024,1),(119,3,2024,2),(119,4,2025,1),(119,5,2025,2),
-(120,1,2024,1),(120,2,2024,2),(120,3,2025,1),
-(121,1,2023,1),(121,2,2023,2),(121,3,2024,1),(121,4,2024,2),(121,5,2025,1),(121,6,2025,2),
-(122,1,2024,2),(122,2,2025,1),(122,3,2025,2),(122,4,2026,1),
-(123,1,2022,2),(123,2,2023,1),(123,3,2023,2),(123,4,2024,1),(123,5,2024,2),
-(124,1,2023,1),(124,2,2023,2),(124,3,2024,1),(124,4,2024,2),(124,5,2025,1),
-(125,1,2024,1),(125,2,2024,2),(125,3,2025,1),(125,4,2025,2),
-(126,1,2023,2),(126,2,2024,1),(126,3,2024,2),(126,4,2025,1),(126,5,2025,2),
-(127,1,2024,1),(127,2,2024,2),(127,3,2025,1),
-(128,1,2023,1),(128,2,2023,2),(128,3,2024,1),(128,4,2024,2),(128,5,2025,1),(128,6,2025,2),
-(129,1,2024,2),(129,2,2025,1),(129,3,2025,2),(129,4,2026,1),
-(130,1,2024,1),(130,2,2024,2),(130,3,2025,1),(130,4,2025,2),
-(131,1,2023,1),(131,2,2023,2),(131,3,2024,1),(131,4,2024,2),
-(132,1,2024,1),(132,2,2024,2),(132,3,2025,1),(132,4,2025,2),(132,5,2026,1),
-(133,1,2022,2),(133,2,2023,1),(133,3,2023,2),(133,4,2024,1),(133,5,2024,2),(133,6,2025,1),
-(134,1,2023,2),(134,2,2024,1),(134,3,2024,2),(134,4,2025,1),
-(135,1,2024,1),(135,2,2024,2),(135,3,2025,1),
-(136,1,2023,1),(136,2,2023,2),(136,3,2024,1),(136,4,2024,2),(136,5,2025,1),(136,6,2025,2),(136,7,2026,1),
-(137,1,2022,1),(137,2,2022,2),(137,3,2023,1),(137,4,2023,2),(137,5,2024,1),
-(138,1,2024,2),(138,2,2025,1),(138,3,2025,2),
-(139,1,2023,1),(139,2,2023,2),(139,3,2024,1),(139,4,2024,2),(139,5,2025,1),
-(140,1,2024,1),(140,2,2024,2),(140,3,2025,1),(140,4,2025,2),
-(141,1,2023,2),(141,2,2024,1),(141,3,2024,2),(141,4,2025,1),(141,5,2025,2),
-(142,1,2024,1),(142,2,2024,2),(142,3,2025,1),
-(143,1,2022,2),(143,2,2023,1),(143,3,2023,2),(143,4,2024,1),(143,5,2024,2),(143,6,2025,1),(143,7,2025,2),
-(144,1,2023,1),(144,2,2023,2),(144,3,2024,1),(144,4,2024,2),
-(145,1,2024,1),(145,2,2024,2),(145,3,2025,1),(145,4,2025,2),(145,5,2026,1),
-(146,1,2023,1),(146,2,2023,2),(146,3,2024,1),(146,4,2024,2),(146,5,2025,1),
-(147,1,2022,1),(147,2,2022,2),(147,3,2023,1),(147,4,2023,2),(147,5,2024,1),(147,6,2024,2),
-(148,1,2024,2),(148,2,2025,1),(148,3,2025,2),(148,4,2026,1),
-(149,1,2023,1),(149,2,2023,2),(149,3,2024,1),(149,4,2024,2),(149,5,2025,1),(149,6,2025,2),
-(150,1,2024,1),(150,2,2024,2),(150,3,2025,1),
-(151,1,2023,1),(151,2,2023,2),(151,3,2024,1),(151,4,2024,2),(151,5,2025,1),
-(152,1,2024,1),(152,2,2024,2),(152,3,2025,1),(152,4,2025,2),
-(153,1,2022,2),(153,2,2023,1),(153,3,2023,2),(153,4,2024,1),(153,5,2024,2),(153,6,2025,1),
-(154,1,2023,2),(154,2,2024,1),(154,3,2024,2),(154,4,2025,1),(154,5,2025,2),
-(155,1,2024,1),(155,2,2024,2),(155,3,2025,1),
-(156,1,2023,1),(156,2,2023,2),(156,3,2024,1),(156,4,2024,2),(156,5,2025,1),(156,6,2025,2),(156,7,2026,1),
-(157,1,2022,1),(157,2,2022,2),(157,3,2023,1),(157,4,2023,2),(157,5,2024,1),
-(158,1,2024,2),(158,2,2025,1),(158,3,2025,2),
-(159,1,2023,1),(159,2,2023,2),(159,3,2024,1),(159,4,2024,2),(159,5,2025,1),
-(160,1,2024,1),(160,2,2024,2),(160,3,2025,1),(160,4,2025,2),
-(161,1,2023,2),(161,2,2024,1),(161,3,2024,2),(161,4,2025,1),(161,5,2025,2),
-(162,1,2024,1),(162,2,2024,2),(162,3,2025,1),
-(163,1,2022,2),(163,2,2023,1),(163,3,2023,2),(163,4,2024,1),(163,5,2024,2),(163,6,2025,1),(163,7,2025,2),
-(164,1,2023,1),(164,2,2023,2),(164,3,2024,1),(164,4,2024,2),
-(165,1,2024,1),(165,2,2024,2),(165,3,2025,1),(165,4,2025,2),(165,5,2026,1),
-(166,1,2023,1),(166,2,2023,2),(166,3,2024,1),(166,4,2024,2),(166,5,2025,1),
-(167,1,2022,1),(167,2,2022,2),(167,3,2023,1),(167,4,2023,2),(167,5,2024,1),(167,6,2024,2),
-(168,1,2024,2),(168,2,2025,1),(168,3,2025,2),(168,4,2026,1),
-(169,1,2023,1),(169,2,2023,2),(169,3,2024,1),(169,4,2024,2),(169,5,2025,1),(169,6,2025,2),
-(170,1,2024,1),(170,2,2024,2),(170,3,2025,1),
-(171,1,2023,1),(171,2,2023,2),(171,3,2024,1),(171,4,2024,2),(171,5,2025,1),
-(172,1,2024,1),(172,2,2024,2),(172,3,2025,1),(172,4,2025,2),
-(173,1,2023,2),(173,2,2024,1),(173,3,2024,2),(173,4,2025,1),(173,5,2025,2),
-(174,1,2024,1),(174,2,2024,2),(174,3,2025,1),
-(175,1,2023,1),(175,2,2023,2),(175,3,2024,1),(175,4,2024,2),(175,5,2025,1),(175,6,2025,2),(175,7,2026,1),
-(176,1,2022,1),(176,2,2022,2),(176,3,2023,1),(176,4,2023,2),(176,5,2024,1),
-(177,1,2024,2),(177,2,2025,1),(177,3,2025,2),
-(178,1,2023,1),(178,2,2023,2),(178,3,2024,1),(178,4,2024,2),(178,5,2025,1),
-(179,1,2024,1),(179,2,2024,2),(179,3,2025,1),(179,4,2025,2),
-(180,1,2023,2),(180,2,2024,1),(180,3,2024,2),(180,4,2025,1),(180,5,2025,2),
-(181,1,2024,1),(181,2,2024,2),(181,3,2025,1),
-(182,1,2023,1),(182,2,2023,2),(182,3,2024,1),(182,4,2024,2),(182,5,2025,1),(182,6,2025,2),
-(183,1,2022,2),(183,2,2023,1),(183,3,2023,2),(183,4,2024,1),(183,5,2024,2),(183,6,2025,1),(183,7,2025,2),
-(184,1,2024,2),(184,2,2025,1),(184,3,2025,2),(184,4,2026,1),
-(185,1,2023,1),(185,2,2023,2),(185,3,2024,1),(185,4,2024,2),(185,5,2025,1),
-(186,1,2024,1),(186,2,2024,2),(186,3,2025,1),(186,4,2025,2),
-(187,1,2023,2),(187,2,2024,1),(187,3,2024,2),(187,4,2025,1),(187,5,2025,2),
-(188,1,2024,1),(188,2,2024,2),(188,3,2025,1),
-(189,1,2023,1),(189,2,2023,2),(189,3,2024,1),(189,4,2024,2),(189,5,2025,1),(189,6,2025,2),(189,7,2026,1),
-(190,1,2022,1),(190,2,2022,2),(190,3,2023,1),(190,4,2023,2),(190,5,2024,1),
-(191,1,2024,2),(191,2,2025,1),(191,3,2025,2),
-(192,1,2023,1),(192,2,2023,2),(192,3,2024,1),(192,4,2024,2),(192,5,2025,1),
-(193,1,2024,1),(193,2,2024,2),(193,3,2025,1),(193,4,2025,2),(193,5,2026,1),
-(194,1,2023,2),(194,2,2024,1),(194,3,2024,2),(194,4,2025,1),
-(195,1,2024,1),(195,2,2024,2),(195,3,2025,1),
-(196,1,2023,1),(196,2,2023,2),(196,3,2024,1),(196,4,2024,2),(196,5,2025,1),(196,6,2025,2),
-(197,1,2022,2),(197,2,2023,1),(197,3,2023,2),(197,4,2024,1),(197,5,2024,2),(197,6,2025,1),
-(198,1,2024,2),(198,2,2025,1),(198,3,2025,2),(198,4,2026,1),
-(199,1,2023,1),(199,2,2023,2),(199,3,2024,1),(199,4,2024,2),(199,5,2025,1),(199,6,2025,2),
-(200,1,2024,1),(200,2,2024,2),(200,3,2025,1),(200,4,2025,2);
-
--- ============================================================
--- FIN DEL ARCHIVO 02_dml.sql
--- Las inserciones de materia, tipologia, programa, componente
--- y nota las completarán los demás integrantes del equipo.
--- ============================================================
