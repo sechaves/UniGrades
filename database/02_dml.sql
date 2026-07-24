@@ -631,3 +631,199 @@ INSERT INTO semestre (semestre_usuario_id, semestre_numero, semestre_year, semes
 (78,1,2024,2),(78,2,2025,1),(78,3,2025,2),(78,4,2026,1),
 (79,1,2023,1),(79,2,2023,2),(79,3,2024,1),(79,4,2024,2),(79,5,2025,1),
 (80,1,2024,1),(80,2,2024,2),(80,3,2025,1);
+
+-- ============================================================
+-- 8. TRANSACCIONAL: INSCRIPCIONES, COMPONENTES Y NOTAS
+-- Genera materia_usuario, componente y nota a partir de los
+-- semestres ya insertados. Se usa un procedimiento temporal
+-- (se crea, se ejecuta con CALL y se elimina) porque MySQL no
+-- permite bloques anonimos con cursores fuera de una rutina.
+--
+-- Volumetria esperada: ~390 semestres x 4-6 materias
+-- => ~1900 materia_usuario, ~5700 componente, +8000 nota.
+-- ============================================================
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_poblar_transaccional()
+BEGIN
+    DECLARE v_done            TINYINT DEFAULT FALSE;
+    DECLARE v_semestre_id     INT UNSIGNED;
+    DECLARE v_usuario_id      INT UNSIGNED;
+    DECLARE v_programa_id     INT UNSIGNED;
+    DECLARE v_semestre_numero TINYINT UNSIGNED;
+    DECLARE v_year            YEAR;
+    DECLARE v_periodo         TINYINT;
+    DECLARE v_max_numero      TINYINT UNSIGNED;
+    DECLARE v_es_actual       TINYINT;
+    DECLARE v_num_materias    INT;
+    DECLARE v_fecha_inicio    DATE;
+
+    DECLARE cur_sem CURSOR FOR
+        SELECT s.semestre_id, s.semestre_usuario_id, u.usuario_programa_id,
+               s.semestre_numero, s.semestre_year, s.semestre_periodo
+        FROM   semestre AS s
+        INNER JOIN usuario AS u ON u.usuario_id = s.semestre_usuario_id;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
+
+    OPEN cur_sem;
+
+    loop_sem: LOOP
+        FETCH cur_sem INTO v_semestre_id, v_usuario_id, v_programa_id,
+                           v_semestre_numero, v_year, v_periodo;
+        IF v_done THEN
+            LEAVE loop_sem;
+        END IF;
+
+        SELECT MAX(semestre_numero) INTO v_max_numero
+        FROM   semestre WHERE semestre_usuario_id = v_usuario_id;
+
+        SET v_es_actual    = IF(v_semestre_numero = v_max_numero, 1, 0);
+        SET v_num_materias = 4 + FLOOR(RAND() * 3);
+        SET v_fecha_inicio = IF(v_periodo = 1,
+                                 CONCAT(v_year, '-02-01'),
+                                 CONCAT(v_year, '-08-01'));
+
+        -- Inscribir materias del programa del estudiante que aun no ha cursado
+        INSERT INTO materia_usuario
+            (materia_usuario_materia_id, materia_usuario_semestre_id, materia_usuario_estado)
+        SELECT m.materia_id, v_semestre_id, 'en_curso'
+        FROM   materia AS m
+        INNER JOIN tipologia AS t ON t.tipologia_id = m.materia_tipologia_id
+        WHERE  t.tipologia_programa_id = v_programa_id
+          AND  NOT EXISTS (
+                   SELECT 1
+                   FROM   materia_usuario AS mu2
+                   INNER JOIN semestre AS s2
+                       ON s2.semestre_id = mu2.materia_usuario_semestre_id
+                   WHERE  s2.semestre_usuario_id = v_usuario_id
+                     AND  mu2.materia_usuario_materia_id = m.materia_id
+               )
+        ORDER BY RAND()
+        LIMIT 20;
+        -- Nota: LIMIT fijo amplio; el numero real de filas insertadas
+        -- puede ser menor si el programa no tiene tantas materias libres.
+
+        -- Recorrer las materia_usuario recien creadas de este semestre
+        BEGIN
+            DECLARE v_done2       TINYINT DEFAULT FALSE;
+            DECLARE v_mu_id       INT UNSIGNED;
+            DECLARE v_nota_minima DECIMAL(3,1);
+            DECLARE v_target      DECIMAL(4,2);
+            DECLARE v_estado_fin  VARCHAR(20);
+
+            DECLARE cur_mu CURSOR FOR
+                SELECT mu.materia_usuario_id, m.materia_nota_minima_aprobacion
+                FROM   materia_usuario AS mu
+                INNER JOIN materia AS m ON m.materia_id = mu.materia_usuario_materia_id
+                WHERE  mu.materia_usuario_semestre_id = v_semestre_id;
+
+            DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done2 = TRUE;
+
+            OPEN cur_mu;
+
+            loop_mu: LOOP
+                FETCH cur_mu INTO v_mu_id, v_nota_minima;
+                IF v_done2 THEN
+                    LEAVE loop_mu;
+                END IF;
+
+                IF v_es_actual THEN
+                    SET v_estado_fin = 'en_curso';
+                    SET v_target     = NULL;
+                ELSEIF RAND() < 0.82 THEN
+                    SET v_estado_fin = 'aprobada';
+                    SET v_target     = LEAST(5.0, v_nota_minima + RAND() * (5.0 - v_nota_minima));
+                ELSE
+                    SET v_estado_fin = 'reprobada';
+                    SET v_target     = GREATEST(0.5, RAND() * GREATEST(v_nota_minima - 0.2, 0.5));
+                END IF;
+
+                -- 3 componentes fijos que suman 100
+                INSERT INTO componente
+                    (componente_materia_usuario_id, componente_nombre,
+                     componente_porcentaje, componente_nota_minima, componente_orden)
+                VALUES
+                    (v_mu_id, 'Parcial 1',      30.00, NULL, 1),
+                    (v_mu_id, 'Parcial 2',      30.00, NULL, 2),
+                    (v_mu_id, 'Proyecto Final', 40.00, NULL, 3);
+
+                IF NOT v_es_actual THEN
+                    -- Materia cerrada: una nota por componente alrededor del target
+                    INSERT INTO nota (nota_componente_id, nota_nombre, nota_valor, nota_fecha_registro)
+                    SELECT c.componente_id, 'Calificacion final',
+                           ROUND(LEAST(5.0, GREATEST(0.0, v_target + (RAND() - 0.5) * 0.8)), 1),
+                           DATE_ADD(v_fecha_inicio, INTERVAL FLOOR(RAND() * 110) DAY)
+                    FROM   componente AS c
+                    WHERE  c.componente_materia_usuario_id = v_mu_id;
+
+                    -- ~30% de los componentes reciben una segunda entrega
+                    -- (demuestra la relacion 1:N componente -> nota)
+                    INSERT INTO nota (nota_componente_id, nota_nombre, nota_valor, nota_fecha_registro)
+                    SELECT c.componente_id, 'Entrega adicional',
+                           ROUND(LEAST(5.0, GREATEST(0.0, v_target + (RAND() - 0.5) * 0.8)), 1),
+                           DATE_ADD(v_fecha_inicio, INTERVAL FLOOR(RAND() * 110) DAY)
+                    FROM   componente AS c
+                    WHERE  c.componente_materia_usuario_id = v_mu_id
+                      AND  RAND() < 0.3;
+
+                    UPDATE materia_usuario
+                    SET    materia_usuario_estado = v_estado_fin
+                    WHERE  materia_usuario_id = v_mu_id;
+                ELSE
+                    -- Semestre en curso: solo el primer componente tiene
+                    -- una nota parcial (evaluacion incompleta, caso realista)
+                    INSERT INTO nota (nota_componente_id, nota_nombre, nota_valor, nota_fecha_registro)
+                    SELECT c.componente_id, 'Parcial 1 - corte',
+                           ROUND(2.5 + RAND() * 2.5, 1),
+                           CURRENT_DATE()
+                    FROM   componente AS c
+                    WHERE  c.componente_materia_usuario_id = v_mu_id
+                      AND  c.componente_orden = 1;
+                END IF;
+
+            END LOOP loop_mu;
+
+            CLOSE cur_mu;
+        END;
+
+    END LOOP loop_sem;
+
+    CLOSE cur_sem;
+END$$
+
+DELIMITER ;
+
+CALL sp_poblar_transaccional();
+DROP PROCEDURE sp_poblar_transaccional;
+
+-- ============================================================
+-- CASOS LIMITE EXPLICITOS (para la sustentacion / demo de triggers)
+-- Se insertan sobre el usuario 1 usando su primer semestre.
+-- ============================================================
+
+-- Nota: los 3 componentes (30/30/40) generados arriba ya cubren el caso
+-- limite de "porcentaje acumulado = 100 exacto" en TODAS las materias.
+-- Aqui agregamos explicitamente los limites de escala de nota (0.0 y 5.0)
+-- sobre el usuario 1, para poder mostrarlos en la sustentacion.
+
+-- Caso limite: nota en el limite inferior de la escala (0.0)
+INSERT INTO nota (nota_componente_id, nota_nombre, nota_valor, nota_fecha_registro)
+SELECT c.componente_id, 'Caso limite - nota minima', 0.0, '2024-03-15'
+FROM   componente AS c
+INNER JOIN materia_usuario AS mu ON mu.materia_usuario_id = c.componente_materia_usuario_id
+INNER JOIN semestre AS s ON s.semestre_id = mu.materia_usuario_semestre_id
+WHERE  s.semestre_usuario_id = 1
+ORDER BY c.componente_id
+LIMIT 1;
+
+-- Caso limite: nota en el limite superior de la escala (5.0)
+INSERT INTO nota (nota_componente_id, nota_nombre, nota_valor, nota_fecha_registro)
+SELECT c.componente_id, 'Caso limite - nota maxima', 5.0, '2024-05-30'
+FROM   componente AS c
+INNER JOIN materia_usuario AS mu ON mu.materia_usuario_id = c.componente_materia_usuario_id
+INNER JOIN semestre AS s ON s.semestre_id = mu.materia_usuario_semestre_id
+WHERE  s.semestre_usuario_id = 1
+ORDER BY c.componente_id DESC
+LIMIT 1;

@@ -302,6 +302,19 @@ BEGIN
     DECLARE v_total_aprobados  SMALLINT UNSIGNED;
     DECLARE v_nombre_usuario   VARCHAR(201);
 
+    -- Cursor: recorre los semestres del estudiante
+    -- (debe declararse ANTES que los handlers; MySQL exige el orden
+    --  variables/condiciones -> cursores -> handlers, si no falla
+    --  con error 1338 "Cursor declaration after handler declaration")
+    DECLARE cur_semestres CURSOR FOR
+        SELECT s.semestre_id,
+               s.semestre_numero,
+               s.semestre_year,
+               s.semestre_periodo
+        FROM   semestre AS s
+        WHERE  s.semestre_usuario_id = p_usuario_id
+        ORDER  BY s.semestre_year, s.semestre_periodo;
+
     -- Manejo de excepciones
     DECLARE CONTINUE HANDLER FOR NOT FOUND
         SET v_fin_cursor = TRUE;
@@ -311,16 +324,6 @@ BEGIN
         ROLLBACK;
         RESIGNAL;
     END;
-
-    -- Cursor: recorre los semestres del estudiante
-    DECLARE cur_semestres CURSOR FOR
-        SELECT s.semestre_id,
-               s.semestre_numero,
-               s.semestre_year,
-               s.semestre_periodo
-        FROM   semestre AS s
-        WHERE  s.semestre_usuario_id = p_usuario_id
-        ORDER  BY s.semestre_year, s.semestre_periodo;
 
     -- Validar que el usuario existe
     SELECT CONCAT(usuario_nombre, ' ', usuario_apellido)
@@ -373,7 +376,6 @@ BEGIN
             LEAVE loop_semestres;
         END IF;
 
-        SET v_fin_cursor   = FALSE;
         SET v_promedio_sem = fn_promedio_semestre(p_usuario_id, v_semestre_id);
 
         SELECT COALESCE(SUM(vm.creditos), 0)
@@ -431,7 +433,7 @@ CREATE PROCEDURE sp_inscribir_materia(
     IN  p_semestre_id INT UNSIGNED,
     OUT p_mensaje     VARCHAR(255)
 )
-BEGIN
+sp_inscribir_materia: BEGIN
     DECLARE v_programa_usuario         INT UNSIGNED;
     DECLARE v_programa_materia         INT UNSIGNED;
     DECLARE v_semestre_usuario         INT UNSIGNED;
@@ -561,7 +563,7 @@ BEGIN
         v_nuevo_id
     );
 
-END$$
+END sp_inscribir_materia$$
 
 DELIMITER ;
 
