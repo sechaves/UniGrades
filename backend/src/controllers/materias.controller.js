@@ -2,6 +2,14 @@ const pool = require('../config/db');
 
 exports.list = async (req, res, next) => {
   try {
+    // Filtrar por el programa del usuario autenticado (programa_id viene del JWT via authMiddleware)
+    // Si se pasa ?programa_id=X como query param, se usa ese; si no, se usa el del token
+    const programa_id = req.query.programa_id || req.user?.programa_id;
+
+    if (!programa_id) {
+      return res.status(400).json({ success: false, message: 'programa_id requerido.' });
+    }
+
     const [rows] = await pool.query(
       `SELECT
           m.materia_id,
@@ -18,7 +26,9 @@ exports.list = async (req, res, next) => {
        FROM materia m
        INNER JOIN tipologia t ON t.tipologia_id = m.materia_tipologia_id
        INNER JOIN programa p  ON p.programa_id  = t.tipologia_programa_id
-       ORDER BY p.programa_nombre, t.tipologia_nombre, m.materia_semestre_sugerido, m.materia_nombre`
+       WHERE p.programa_id = ?
+       ORDER BY t.tipologia_nombre, m.materia_semestre_sugerido, m.materia_nombre`,
+      [programa_id]
     );
     return res.json({ success: true, data: rows });
   } catch (err) {
