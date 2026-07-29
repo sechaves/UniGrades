@@ -21,16 +21,16 @@ export default function SemestrePage() {
   const semestre = semestres.find(s => s.semestre_id === semestreId)
 
   const { data: materiasInscritas = [], isLoading } = useMateriasBySemestre(semestreId)
-  const { data: todasMaterias = [] } = useMateriasPrograma()
+  const { data: todasMaterias = [], isLoading: loadingMaterias } = useMateriasPrograma()
   const inscribir = useInscribirMateria(semestreId, user!.usuario_id)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [materiaId, setMateriaId] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Materias del programa del usuario filtradas por las ya inscritas en este semestre
-  const inscritasIds = new Set(materiasInscritas.map(m => m.materia_id))
-  const disponibles = todasMaterias.filter(m => !inscritasIds.has(m.materia_id))
+  // Excluir solo las que ya están inscritas en ESTE semestre (aprobadas en otros se pueden ver pero el SP las rechaza)
+  const inscritasEnEsteSemestre = new Set(materiasInscritas.map(m => m.materia_id))
+  const disponibles = todasMaterias.filter(m => !inscritasEnEsteSemestre.has(m.materia_id))
 
   async function handleInscribir(e: React.FormEvent) {
     e.preventDefault()
@@ -142,8 +142,11 @@ export default function SemestrePage() {
             value={materiaId}
             onChange={e => setMateriaId(e.target.value)}
             required
+            disabled={loadingMaterias}
           >
-            <option value="">Selecciona una materia</option>
+            <option value="">
+              {loadingMaterias ? 'Cargando materias…' : disponibles.length === 0 ? 'No hay materias disponibles' : 'Selecciona una materia'}
+            </option>
             {disponibles
               .sort((a, b) => (a.materia_semestre_sugerido ?? 99) - (b.materia_semestre_sugerido ?? 99))
               .map(m => (
@@ -152,12 +155,17 @@ export default function SemestrePage() {
                 </option>
               ))}
           </Select>
+          {disponibles.length === 0 && !loadingMaterias && (
+            <p className="text-sm text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              Todas las materias de tu programa ya están inscritas en este semestre, o no hay materias registradas para tu programa.
+            </p>
+          )}
           {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
           <div className="flex gap-2 justify-end">
             <Button type="button" variant="outline" onClick={() => { setModalOpen(false); setMateriaId(''); setErrorMsg('') }}>
               Cancelar
             </Button>
-            <Button type="submit" loading={inscribir.isPending} disabled={!materiaId}>
+            <Button type="submit" loading={inscribir.isPending} disabled={!materiaId || disponibles.length === 0}>
               Inscribir
             </Button>
           </div>
