@@ -3,14 +3,17 @@ import { api } from '@/lib/api'
 import type { Materia, MateriaUsuario } from '@/types'
 
 export function useMateriasPrograma() {
-  // Lee programa_id del usuario en localStorage como respaldo al JWT
   const stored = localStorage.getItem('unigrades_user')
-  const programaId: number | undefined = stored ? JSON.parse(stored)?.usuario_programa_id : undefined
+  const parsed = stored ? JSON.parse(stored) : null
+  // Asegurar que sea número, no string ni "1:1"
+  const programaId: number | undefined = parsed?.usuario_programa_id
+    ? Number(parsed.usuario_programa_id)
+    : undefined
 
   return useQuery<Materia[]>({
     queryKey: ['materias', programaId],
     queryFn: () => api.get<Materia[]>(`/materias${programaId ? `?programa_id=${programaId}` : ''}`),
-    enabled: !!programaId,
+    enabled: !!programaId && !isNaN(programaId),
   })
 }
 

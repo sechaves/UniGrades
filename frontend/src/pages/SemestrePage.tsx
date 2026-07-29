@@ -121,7 +121,7 @@ export default function SemestrePage() {
                     {m.nota_acumulada !== null && (
                       <span className={`text-sm ${notaColor(m.estado, m.nota_final)}`}>
                         {m.nota_final !== null
-                          ? m.nota_final.toFixed(2)
+                          ? Number(m.nota_final).toFixed(2)
                           : `${Number(m.nota_acumulada).toFixed(2)} (${m.porcentaje_evaluado}%)`}
                       </span>
                     )}
