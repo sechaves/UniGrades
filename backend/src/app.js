@@ -34,6 +34,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// ── Health-check (público, debe ir ANTES de las rutas protegidas) ─────────────
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
 // ── Rutas ─────────────────────────────────────────────────────────────────────
 app.use('/api/auth',            authRoutes);
 app.use('/api/universidades',   universidadesRoutes);
@@ -44,9 +47,6 @@ app.use('/api/materia-usuario', materiaUsuarioRoutes);
 app.use('/api',                 componentesRoutes);
 app.use('/api',                 notasRoutes);
 app.use('/api',                 reportesRoutes);
-
-// ── Health-check (público, no requiere auth) ─────────────────────────────────
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // ── Error handler (debe ir al final) ─────────────────────────────────────────
 app.use(errorMiddleware);
