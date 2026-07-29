@@ -2,9 +2,17 @@ const pool = require('../config/db');
 
 exports.list = async (req, res, next) => {
   try {
-    // Filtrar por el programa del usuario autenticado (programa_id viene del JWT via authMiddleware)
-    // Si se pasa ?programa_id=X como query param, se usa ese; si no, se usa el del token
-    const programa_id = req.query.programa_id || req.user?.programa_id;
+    // programa_id: primero query param, luego JWT, luego tabla usuario
+    let programa_id = req.query.programa_id || req.user?.programa_id;
+
+    // Si aún no hay programa_id, obtenerlo directo de la DB por usuario_id del JWT
+    if (!programa_id && req.user?.id) {
+      const [[u]] = await pool.query(
+        'SELECT usuario_programa_id FROM usuario WHERE usuario_id = ?',
+        [req.user.id]
+      );
+      programa_id = u?.usuario_programa_id;
+    }
 
     if (!programa_id) {
       return res.status(400).json({ success: false, message: 'programa_id requerido.' });
