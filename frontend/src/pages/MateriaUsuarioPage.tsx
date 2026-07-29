@@ -120,7 +120,7 @@ export default function MateriaUsuarioPage() {
   const muId = Number(id)
   const navigate = useNavigate()
 
-  // Fetch materia info
+  // Fetch materia info — usa endpoint directo que incluye materias sin notas
   const { data: materia, isLoading: loadingMateria } = useQuery<MateriaUsuario>({
     queryKey: ['materia-usuario', muId],
     queryFn: () => api.get<MateriaUsuario>(`/materia-usuario/${muId}`),

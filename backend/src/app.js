@@ -17,8 +17,19 @@ const errorMiddleware = require('./middleware/error.middleware');
 const app = express();
 
 // ── Middleware global ─────────────────────────────────────────────────────────
+// CORS_ORIGIN puede ser una URL única o una lista separada por comas
+// Ej: https://unigrades.vercel.app,https://unigrades-git-main.vercel.app
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim());
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Permitir peticiones sin origin (Postman, Railway health-checks)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS bloqueado para: ${origin}`));
+  },
   credentials: true,
 }));
 app.use(express.json());

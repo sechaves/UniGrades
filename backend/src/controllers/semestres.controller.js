@@ -39,8 +39,29 @@ exports.create = async (req, res, next) => {
 exports.materiasBySemestre = async (req, res, next) => {
   try {
     const { id } = req.params;
+    // JOIN directo para incluir materias sin notas aún (v_nota_materia excluye las que no tienen notas)
     const [rows] = await pool.query(
-      'SELECT * FROM v_nota_materia WHERE semestre_id = ?',
+      `SELECT
+          mu.materia_usuario_id,
+          s.semestre_usuario_id            AS usuario_id,
+          mu.materia_usuario_semestre_id   AS semestre_id,
+          m.materia_id,
+          m.materia_nombre                 AS materia,
+          m.materia_codigo,
+          m.materia_creditos               AS creditos,
+          t.tipologia_id,
+          t.tipologia_cuenta_promedio      AS cuenta_promedio,
+          mu.materia_usuario_estado        AS estado,
+          vnm.nota_acumulada,
+          vnm.porcentaje_evaluado,
+          vnm.nota_final
+       FROM materia_usuario mu
+       INNER JOIN semestre s   ON s.semestre_id  = mu.materia_usuario_semestre_id
+       INNER JOIN materia m    ON m.materia_id   = mu.materia_usuario_materia_id
+       INNER JOIN tipologia t  ON t.tipologia_id = m.materia_tipologia_id
+       LEFT JOIN v_nota_materia vnm ON vnm.materia_usuario_id = mu.materia_usuario_id
+       WHERE mu.materia_usuario_semestre_id = ?
+       ORDER BY m.materia_nombre`,
       [id]
     );
     return res.json({ success: true, data: rows });
