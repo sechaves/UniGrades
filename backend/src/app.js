@@ -45,8 +45,8 @@ app.use('/api',                 componentesRoutes);
 app.use('/api',                 notasRoutes);
 app.use('/api',                 reportesRoutes);
 
-// ── Health-check ──────────────────────────────────────────────────────────────
-app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+// ── Health-check (público, no requiere auth) ─────────────────────────────────
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // ── Error handler (debe ir al final) ─────────────────────────────────────────
 app.use(errorMiddleware);
