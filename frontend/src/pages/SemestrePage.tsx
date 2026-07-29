@@ -49,7 +49,7 @@ export default function SemestrePage() {
     if (nota === null) return 'text-gray-500 dark:text-gray-400'
     if (estado === 'aprobada') return 'text-green-600 dark:text-green-400 font-bold'
     if (estado === 'reprobada') return 'text-red-600 dark:text-red-400 font-bold'
-    return 'text-indigo-600 dark:text-indigo-400 font-bold'
+    return 'text-brand-600 dark:text-brand-500 font-bold'
   }
 
   const titulo = semestre
@@ -71,7 +71,7 @@ export default function SemestrePage() {
         {semestre?.promedio_semestre != null && (
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Promedio:{' '}
-            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+            <span className="font-semibold text-brand-600 dark:text-brand-500">
               {Number(semestre.promedio_semestre).toFixed(2)}
             </span>
           </p>
@@ -97,7 +97,7 @@ export default function SemestrePage() {
           ) : materiasInscritas.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 text-sm">
               No hay materias inscritas.{' '}
-              <button className="text-indigo-600 hover:underline" onClick={() => setModalOpen(true)}>
+              <button className="text-brand-600 hover:underline" onClick={() => setModalOpen(true)}>
                 Inscribe la primera
               </button>
             </p>
@@ -107,10 +107,10 @@ export default function SemestrePage() {
                 <Link
                   key={m.materia_usuario_id}
                   to={`/materia-usuario/${m.materia_usuario_id}`}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 hover:border-indigo-400 hover:shadow-sm transition-all group"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 hover:border-brand-500 hover:shadow-sm transition-all group"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 truncate">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-brand-600 truncate">
                       {m.materia}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">

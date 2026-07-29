@@ -43,7 +43,7 @@ export default function MateriasPage() {
         placeholder="Buscar materia, código o tipología…"
         value={search}
         onChange={e => setSearch(e.target.value)}
-        className="w-full mb-6 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+        className="w-full mb-6 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         aria-label="Buscar materia"
       />
 
@@ -76,7 +76,7 @@ export default function MateriasPage() {
                             <p className="text-xs text-gray-500 dark:text-gray-400">{m.materia_codigo}</p>
                           )}
                         </div>
-                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                        <span className="text-xs font-semibold text-brand-600 dark:text-brand-500 whitespace-nowrap">
                           {m.materia_creditos} cr.
                         </span>
                       </div>

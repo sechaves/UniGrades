@@ -46,7 +46,7 @@ function NotasList({ componente, muId }: { componente: Componente; muId: number 
         </p>
         <button
           onClick={() => setOpen(true)}
-          className="text-xs text-indigo-600 hover:underline dark:text-indigo-400 flex items-center gap-1"
+          className="text-xs text-brand-600 hover:underline dark:text-brand-500 flex items-center gap-1"
         >
           <Plus size={12} /> Agregar
         </button>
@@ -181,7 +181,7 @@ export default function MateriaUsuarioPage() {
         <div className="flex flex-col items-end gap-2">
           <EstadoBadge estado={materia.estado} />
           {materia.nota_final !== null && (
-            <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+            <span className="text-2xl font-bold text-brand-600 dark:text-brand-500">
               {Number(materia.nota_final).toFixed(2)}
             </span>
           )}

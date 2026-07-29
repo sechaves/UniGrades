@@ -30,7 +30,7 @@ interface BadgeProps {
 
 export function Badge({ children, className }: BadgeProps) {
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800', className)}>
+    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-brand-100 text-brand-700', className)}>
       {children}
     </span>
   )

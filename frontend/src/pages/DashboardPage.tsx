@@ -14,7 +14,7 @@ function StatCard({ label, value, icon }: { label: string; value: string | numbe
   return (
     <Card>
       <CardContent className="flex items-center gap-4 py-5">
-        <div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/30">{icon}</div>
+        <div className="p-3 rounded-lg bg-brand-50 dark:bg-brand-100/60">{icon}</div>
         <div>
           <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
@@ -76,17 +76,17 @@ export default function DashboardPage() {
         <StatCard
           label="Promedio global"
           value={promedio?.promedio_global != null ? promedio.promedio_global.toFixed(2) : '—'}
-          icon={<TrendingUp size={20} className="text-indigo-600" />}
+          icon={<TrendingUp size={20} className="text-brand-600" />}
         />
         <StatCard
           label="Créditos cursados"
           value={promedio?.total_creditos_cursados ?? 0}
-          icon={<BookOpen size={20} className="text-indigo-600" />}
+          icon={<BookOpen size={20} className="text-brand-600" />}
         />
         <StatCard
           label="Créditos aprobados"
           value={promedio?.total_creditos_aprobados ?? 0}
-          icon={<Award size={20} className="text-indigo-600" />}
+          icon={<Award size={20} className="text-brand-600" />}
         />
       </div>
 
@@ -111,7 +111,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="w-full h-2 bg-gray-100 rounded-full dark:bg-gray-800">
                     <div
-                      className="h-2 rounded-full bg-indigo-500 transition-all"
+                      className="h-2 rounded-full bg-brand-500 transition-all"
                       style={{ width: `${pct}%` }}
                       role="progressbar"
                       aria-valuenow={pct}
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           ) : semestres.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 text-sm">
               No tienes semestres aún.{' '}
-              <button className="text-indigo-600 hover:underline" onClick={() => setModalOpen(true)}>
+              <button className="text-brand-600 hover:underline" onClick={() => setModalOpen(true)}>
                 Crea el primero
               </button>
             </p>
@@ -151,16 +151,16 @@ export default function DashboardPage() {
                 <button
                   key={s.semestre_id}
                   onClick={() => navigate(`/semestres/${s.semestre_id}`)}
-                  className="text-left rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-400 hover:shadow-sm transition-all group"
+                  className="text-left rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-brand-500 hover:shadow-sm transition-all group"
                 >
-                  <p className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600">
+                  <p className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-brand-600">
                     Semestre {s.semestre_numero}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {s.semestre_year} · Período {s.semestre_periodo}
                   </p>
                   {s.promedio_semestre != null && (
-                    <p className="mt-2 text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                    <p className="mt-2 text-lg font-bold text-brand-600 dark:text-brand-500">
                       {Number(s.promedio_semestre).toFixed(2)}
                     </p>
                   )}

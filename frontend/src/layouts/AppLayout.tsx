@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { GraduationCap, LayoutDashboard, BookOpen, LogOut, User } from 'lucide-react'
+import { LayoutDashboard, BookOpen, LogOut, User } from 'lucide-react'
 import { useAuthContext } from '@/context/AuthContext'
 
 export default function AppLayout() {
@@ -14,7 +14,7 @@ export default function AppLayout() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
       isActive
-        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+        ? 'bg-brand-50 text-brand-700'
         : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
     }`
 
@@ -27,8 +27,7 @@ export default function AppLayout() {
           to="/dashboard"
           className="flex items-center gap-2 px-5 py-5 border-b border-gray-100 dark:border-gray-800"
         >
-          <GraduationCap className="text-indigo-600" size={24} />
-          <span className="text-xl font-bold text-gray-900 dark:text-gray-100">UniGrades</span>
+          <img src="/logo.png" alt="UniGrades" className="h-7 w-auto" />
         </Link>
 
         {/* Nav */}
@@ -39,15 +38,15 @@ export default function AppLayout() {
           </NavLink>
           <NavLink to="/materias" className={navLinkClass}>
             <BookOpen size={16} />
-            Mis materias
+            Plan de estudios
           </NavLink>
         </nav>
 
         {/* User */}
         <div className="p-4 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center dark:bg-indigo-900">
-              <User size={16} className="text-indigo-600 dark:text-indigo-300" />
+            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center">
+              <User size={16} className="text-brand-600" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -71,8 +70,7 @@ export default function AppLayout() {
         {/* Mobile header */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-800">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <GraduationCap className="text-indigo-600" size={20} />
-            <span className="font-bold text-gray-900 dark:text-gray-100">UniGrades</span>
+            <img src="/logo.png" alt="UniGrades" className="h-6 w-auto" />
           </Link>
           <button
             onClick={handleLogout}
