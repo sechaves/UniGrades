@@ -10,9 +10,9 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, label, error, id, children, ...props }, ref) => {
     const selectId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={selectId} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor={selectId} className="text-sm font-medium text-gray-700">
             {label}
           </label>
         )}
@@ -20,11 +20,13 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={cn(
-            'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm',
-            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent',
-            'dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            error && 'border-red-500 focus:ring-red-500',
+            'rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900',
+            'transition-all duration-150 appearance-none',
+            'focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500',
+            'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50',
+            error
+              ? 'border-red-400 focus:ring-red-500/30 focus:border-red-500'
+              : 'border-gray-200 hover:border-gray-300',
             className
           )}
           {...props}

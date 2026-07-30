@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -11,7 +12,6 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, children, className }: ModalProps) {
-  // Close on Escape key
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -19,44 +19,55 @@ export default function Modal({ open, onClose, title, children, className }: Mod
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  if (!open) return null
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
-    >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <AnimatePresence>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? 'modal-title' : undefined}
+        >
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            onClick={onClose}
+            aria-hidden="true"
+          />
 
-      {/* Panel */}
-      <div className={cn(
-        'relative z-10 w-full max-w-md rounded-xl bg-white shadow-xl dark:bg-gray-900',
-        className
-      )}>
-        {/* Header */}
-        {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-            <h2 id="modal-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {title}
-            </h2>
-            <button
-              onClick={onClose}
-              className="rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-              aria-label="Cerrar"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        )}
-        <div className="px-6 py-4">{children}</div>
-      </div>
-    </div>
+          {/* Panel */}
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 340 }}
+            className={cn(
+              'relative z-10 w-full max-w-md rounded-2xl bg-white shadow-[var(--shadow-elevated)]',
+              className
+            )}
+          >
+            {title && (
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <h2 id="modal-title" className="text-base font-semibold text-gray-900">
+                  {title}
+                </h2>
+                <button
+                  onClick={onClose}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            <div className="px-6 py-5">{children}</div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   )
 }
