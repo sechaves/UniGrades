@@ -13,6 +13,21 @@
   --color-brand-800: #2e6426;
   --color-brand-900: #1e4219;
 
+  /* Pine (dark greens for text) */
+  --color-pine-900: #1a2e1a;
+  --color-pine-800: #2d4a2d;
+  --color-pine-700: #3f6b3f;
+
+  /* Parchment (warm off-whites) */
+  --color-parchment-50:  #faf8f4;
+  --color-parchment-100: #f5f0e8;
+  --color-parchment-200: #ede4d0;
+
+  /* Mist (cool light grays) */
+  --color-mist-50:  #f8f9fa;
+  --color-mist-100: #f1f3f5;
+  --color-mist-200: #e9ecef;
+
   /* Surface palette */
   --color-surface-0:   #ffffff;
   --color-surface-50:  #f9fafb;
@@ -23,7 +38,9 @@
   --color-surface-950: #0a0f1a;
 
   /* Typography */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 
   /* Radius */
   --radius-xl:  0.875rem;
