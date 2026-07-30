@@ -1,24 +1,40 @@
 import { cn } from '@/lib/utils'
 import type { MateriaEstado } from '@/types'
 
-const estadoClasses: Record<MateriaEstado, string> = {
-  en_curso: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  aprobada: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-  reprobada: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-  retirada: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-}
-
-const estadoLabels: Record<MateriaEstado, string> = {
-  en_curso: 'En curso',
-  aprobada: 'Aprobada',
-  reprobada: 'Reprobada',
-  retirada: 'Retirada',
+const estadoConfig: Record<MateriaEstado, { label: string; className: string; dot: string }> = {
+  en_curso: {
+    label: 'En curso',
+    className: 'bg-blue-50 text-blue-700 border border-blue-100',
+    dot: 'bg-blue-500',
+  },
+  aprobada: {
+    label: 'Aprobada',
+    className: 'bg-brand-50 text-brand-700 border border-brand-100',
+    dot: 'bg-brand-500',
+  },
+  reprobada: {
+    label: 'Reprobada',
+    className: 'bg-red-50 text-red-700 border border-red-100',
+    dot: 'bg-red-500',
+  },
+  retirada: {
+    label: 'Retirada',
+    className: 'bg-gray-50 text-gray-500 border border-gray-100',
+    dot: 'bg-gray-400',
+  },
 }
 
 export function EstadoBadge({ estado }: { estado: MateriaEstado }) {
+  const config = estadoConfig[estado]
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', estadoClasses[estado])}>
-      {estadoLabels[estado]}
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
+        config.className
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', config.dot)} />
+      {config.label}
     </span>
   )
 }
@@ -26,11 +42,25 @@ export function EstadoBadge({ estado }: { estado: MateriaEstado }) {
 interface BadgeProps {
   children: React.ReactNode
   className?: string
+  variant?: 'brand' | 'gray' | 'blue' | 'amber'
 }
 
-export function Badge({ children, className }: BadgeProps) {
+const badgeVariants = {
+  brand: 'bg-brand-50 text-brand-700 border border-brand-100',
+  gray: 'bg-gray-50 text-gray-600 border border-gray-100',
+  blue: 'bg-blue-50 text-blue-700 border border-blue-100',
+  amber: 'bg-amber-50 text-amber-700 border border-amber-100',
+}
+
+export function Badge({ children, className, variant = 'brand' }: BadgeProps) {
   return (
-    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-brand-100 text-brand-700', className)}>
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+        badgeVariants[variant],
+        className
+      )}
+    >
       {children}
     </span>
   )

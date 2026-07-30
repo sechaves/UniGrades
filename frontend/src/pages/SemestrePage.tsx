@@ -1,16 +1,42 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, BookMarked, ChevronRight } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useAuthContext } from '@/context/AuthContext'
 import { useMateriasBySemestre, useInscribirMateria, useMateriasPrograma } from '@/hooks/useMaterias'
 import { useSemestres } from '@/hooks/useSemestres'
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Select from '@/components/ui/Select'
 import { EstadoBadge } from '@/components/ui/Badge'
+import { Skeleton } from '@/components/ui/Skeleton'
 import type { MateriaEstado } from '@/types'
 
+/* ── Nota display ── */
+function NotaDisplay({ estado, nota_final, nota_acumulada, porcentaje_evaluado }: {
+  estado: MateriaEstado
+  nota_final: number | null
+  nota_acumulada: number | null
+  porcentaje_evaluado: number | null
+}) {
+  if (nota_final !== null) {
+    const color =
+      estado === 'aprobada' ? 'text-brand-600' :
+      estado === 'reprobada' ? 'text-red-600' : 'text-gray-700'
+    return <span className={`font-bold tabular-nums ${color}`}>{Number(nota_final).toFixed(2)}</span>
+  }
+  if (nota_acumulada !== null) {
+    return (
+      <span className="text-sm text-gray-500 tabular-nums">
+        <span className="font-semibold text-gray-700">{Number(nota_acumulada).toFixed(2)}</span>
+        <span className="text-xs ml-1 text-gray-400">({porcentaje_evaluado}%)</span>
+      </span>
+    )
+  }
+  return <span className="text-xs text-gray-300">—</span>
+}
+
+/* ── Page ── */
 export default function SemestrePage() {
   const { id } = useParams<{ id: string }>()
   const semestreId = Number(id)
@@ -28,9 +54,10 @@ export default function SemestrePage() {
   const [materiaId, setMateriaId] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
-  // Excluir solo las que ya están inscritas en ESTE semestre (aprobadas en otros se pueden ver pero el SP las rechaza)
-  const inscritasEnEsteSemestre = new Set(materiasInscritas.map(m => m.materia_id))
-  const disponibles = todasMaterias.filter(m => !inscritasEnEsteSemestre.has(m.materia_id))
+  const inscritasIds = new Set(materiasInscritas.map(m => m.materia_id))
+  const disponibles = todasMaterias
+    .filter(m => !inscritasIds.has(m.materia_id))
+    .sort((a, b) => (a.materia_semestre_sugerido ?? 99) - (b.materia_semestre_sugerido ?? 99))
 
   async function handleInscribir(e: React.FormEvent) {
     e.preventDefault()
@@ -45,97 +72,108 @@ export default function SemestrePage() {
     }
   }
 
-  function notaColor(estado: MateriaEstado, nota: number | null) {
-    if (nota === null) return 'text-gray-500 dark:text-gray-400'
-    if (estado === 'aprobada') return 'text-green-600 dark:text-green-400 font-bold'
-    if (estado === 'reprobada') return 'text-red-600 dark:text-red-400 font-bold'
-    return 'text-brand-600 dark:text-brand-500 font-bold'
+  function closeModal() {
+    setModalOpen(false)
+    setMateriaId('')
+    setErrorMsg('')
   }
 
   const titulo = semestre
-    ? `Semestre ${semestre.semestre_numero} · ${semestre.semestre_year}-${semestre.semestre_periodo}S`
-    : `Semestre`
+    ? `Semestre ${semestre.semestre_numero} — ${semestre.semestre_year}-${semestre.semestre_periodo}S`
+    : 'Semestre'
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Back */}
-      <div className="mb-6">
+    <div className="space-y-6">
+      {/* Back + Header */}
+      <div>
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-4"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={15} />
           Dashboard
         </button>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">{titulo}</h1>
-        {semestre?.promedio_semestre != null && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Promedio:{' '}
-            <span className="font-semibold text-brand-600 dark:text-brand-500">
-              {Number(semestre.promedio_semestre).toFixed(2)}
-            </span>
-          </p>
-        )}
-      </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle>Materias inscritas</CardTitle>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {materiasInscritas.length} materia{materiasInscritas.length !== 1 ? 's' : ''}
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">{titulo}</h1>
+            {semestre?.promedio_semestre != null && (
+              <p className="text-sm text-gray-500 mt-1">
+                Promedio:{' '}
+                <span className="font-bold text-brand-600 text-base">
+                  {Number(semestre.promedio_semestre).toFixed(2)}
+                </span>
+              </p>
+            )}
           </div>
-          <Button size="sm" onClick={() => setModalOpen(true)}>
-            <Plus size={14} />
+          <Button size="sm" onClick={() => setModalOpen(true)} className="shrink-0">
+            <Plus size={15} />
             Inscribir materia
           </Button>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <p className="text-gray-500 text-sm">Cargando…</p>
-          ) : materiasInscritas.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              No hay materias inscritas.{' '}
-              <button className="text-brand-600 hover:underline" onClick={() => setModalOpen(true)}>
-                Inscribe la primera
-              </button>
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {materiasInscritas.map(m => (
-                <Link
-                  key={m.materia_usuario_id}
-                  to={`/materia-usuario/${m.materia_usuario_id}`}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 hover:border-brand-500 hover:shadow-sm transition-all group"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-gray-100 group-hover:text-brand-600 truncate">
-                      {m.materia}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {m.materia_codigo} · {m.creditos} créditos
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                    {m.nota_acumulada !== null && (
-                      <span className={`text-sm ${notaColor(m.estado, m.nota_final)}`}>
-                        {m.nota_final !== null
-                          ? Number(m.nota_final).toFixed(2)
-                          : `${Number(m.nota_acumulada).toFixed(2)} (${m.porcentaje_evaluado}%)`}
-                      </span>
-                    )}
-                    <EstadoBadge estado={m.estado} />
-                  </div>
-                </Link>
-              ))}
+        </div>
+      </div>
+
+      {/* Materias list */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="rounded-2xl border border-gray-100 bg-white p-4">
+              <Skeleton className="h-4 w-2/3 mb-2" />
+              <Skeleton className="h-3 w-1/3" />
             </div>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      ) : materiasInscritas.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-12 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center mx-auto mb-4">
+            <BookMarked size={24} className="text-brand-500" />
+          </div>
+          <p className="font-medium text-gray-700 mb-1">Sin materias inscritas</p>
+          <p className="text-sm text-gray-400 mb-5">Inscribe tu primera materia para empezar a registrar notas.</p>
+          <Button size="sm" onClick={() => setModalOpen(true)}>
+            <Plus size={15} />
+            Inscribir materia
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {materiasInscritas.map((m, i) => (
+            <motion.div
+              key={m.materia_usuario_id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.04, duration: 0.3 }}
+            >
+              <Link
+                to={`/materia-usuario/${m.materia_usuario_id}`}
+                className="group flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:border-brand-200 transition-all duration-200"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-gray-900 group-hover:text-brand-700 transition-colors truncate">
+                    {m.materia}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {m.materia_codigo} · {m.creditos} créditos
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 ml-4">
+                  <NotaDisplay
+                    estado={m.estado}
+                    nota_final={m.nota_final}
+                    nota_acumulada={m.nota_acumulada}
+                    porcentaje_evaluado={m.porcentaje_evaluado}
+                  />
+                  <EstadoBadge estado={m.estado} />
+                  <ChevronRight size={16} className="text-gray-300 group-hover:text-brand-500 transition-colors" />
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Modal inscribir */}
-      <Modal open={modalOpen} onClose={() => { setModalOpen(false); setMateriaId(''); setErrorMsg('') }} title="Inscribir materia">
+      <Modal open={modalOpen} onClose={closeModal} title="Inscribir materia">
         <form onSubmit={handleInscribir} className="flex flex-col gap-4">
           <Select
             label="Materia"
@@ -145,27 +183,40 @@ export default function SemestrePage() {
             disabled={loadingMaterias}
           >
             <option value="">
-              {loadingMaterias ? 'Cargando materias…' : disponibles.length === 0 ? 'No hay materias disponibles' : 'Selecciona una materia'}
+              {loadingMaterias
+                ? 'Cargando materias…'
+                : disponibles.length === 0
+                ? 'No hay materias disponibles'
+                : 'Selecciona una materia'}
             </option>
-            {disponibles
-              .sort((a, b) => (a.materia_semestre_sugerido ?? 99) - (b.materia_semestre_sugerido ?? 99))
-              .map(m => (
-                <option key={m.materia_id} value={m.materia_id}>
-                  [{m.materia_semestre_sugerido ?? '?'}] {m.materia_nombre} ({m.materia_creditos} cr.)
-                </option>
-              ))}
+            {disponibles.map(m => (
+              <option key={m.materia_id} value={m.materia_id}>
+                [{m.materia_semestre_sugerido ?? '?'}] {m.materia_nombre} ({m.materia_creditos} cr.)
+              </option>
+            ))}
           </Select>
+
           {disponibles.length === 0 && !loadingMaterias && (
-            <p className="text-sm text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-              Todas las materias de tu programa ya están inscritas en este semestre, o no hay materias registradas para tu programa.
-            </p>
+            <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
+              Todas las materias de tu programa ya están inscritas en este semestre.
+            </div>
           )}
-          {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => { setModalOpen(false); setMateriaId(''); setErrorMsg('') }}>
+
+          {errorMsg && (
+            <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+              {errorMsg}
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end pt-1">
+            <Button type="button" variant="outline" onClick={closeModal}>
               Cancelar
             </Button>
-            <Button type="submit" loading={inscribir.isPending} disabled={!materiaId || disponibles.length === 0}>
+            <Button
+              type="submit"
+              loading={inscribir.isPending}
+              disabled={!materiaId || disponibles.length === 0}
+            >
               Inscribir
             </Button>
           </div>
