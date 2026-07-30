@@ -64,11 +64,27 @@ exports.resumen = async (req, res, next) => {
 exports.promedioGlobal = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Calcula promedio ponderado de TODAS las materias con nota_acumulada
+    // incluyendo en_curso, aprobada y reprobada (no retiradas)
     const [[row]] = await pool.query(
-      'SELECT * FROM v_promedio_global WHERE usuario_id = ?',
+      `SELECT
+          vm.usuario_id,
+          ROUND(
+            SUM(vm.nota_acumulada * vm.creditos) / NULLIF(SUM(vm.creditos), 0),
+            2
+          ) AS promedio_global,
+          SUM(vm.creditos) AS total_creditos_cursados,
+          SUM(CASE WHEN vm.estado = 'aprobada' THEN vm.creditos ELSE 0 END) AS total_creditos_aprobados
+       FROM v_nota_materia vm
+       WHERE vm.usuario_id = ?
+         AND vm.estado != 'retirada'
+         AND vm.nota_acumulada IS NOT NULL
+         AND vm.cuenta_promedio = 1
+       GROUP BY vm.usuario_id`,
       [id]
     );
-    // Si la vista devuelve null, retornar estructura con 0s en vez de null
+
     return res.json({
       success: true,
       data: row || {
