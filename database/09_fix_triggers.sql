@@ -1,16 +1,13 @@
 -- ============================================================
 -- UNIGRADES - 09_fix_triggers.sql
--- Agrega triggers para recalcular estado de materia_usuario
--- cuando se ACTUALIZA o ELIMINA una nota.
--- EJECUTAR EN RAILWAY (base de datos unigrades)
+-- Triggers para recalcular estado en UPDATE y DELETE de nota.
+-- EJECUTAR EN RAILWAY — abrir en DBeaver, seleccionar TODO
+-- y usar: SQL Editor > Execute Script (Ctrl+Shift+Enter)
+-- NO usar Ctrl+Enter (ejecuta statement a statement)
 -- ============================================================
 
 USE unigrades;
 
--- ------------------------------------------------------------
--- Helper procedure: recalcula el estado de una materia_usuario
--- Se llama desde los triggers de UPDATE y DELETE en nota.
--- ------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_recalcular_estado_materia;
 
 DELIMITER $$
@@ -18,18 +15,15 @@ DELIMITER $$
 CREATE PROCEDURE sp_recalcular_estado_materia(
     IN p_materia_usuario_id INT UNSIGNED
 )
-BEGIN
-    DECLARE v_materia_id          INT UNSIGNED;
+recalc: BEGIN
     DECLARE v_nota_minima         DECIMAL(3,1);
     DECLARE v_porcentaje_evaluado DECIMAL(6,2);
     DECLARE v_nota_final          DECIMAL(4,2);
     DECLARE v_estado_actual       VARCHAR(20);
 
-    SELECT mu.materia_usuario_materia_id,
-           m.materia_nota_minima_aprobacion,
+    SELECT m.materia_nota_minima_aprobacion,
            mu.materia_usuario_estado
-    INTO   v_materia_id,
-           v_nota_minima,
+    INTO   v_nota_minima,
            v_estado_actual
     FROM   materia_usuario AS mu
     INNER JOIN materia AS m
@@ -38,7 +32,7 @@ BEGIN
 
     -- No recalcular si fue retirada
     IF v_estado_actual = 'retirada' THEN
-        LEAVE;
+        LEAVE recalc;
     END IF;
 
     -- Calcular porcentaje evaluado y nota final
@@ -68,13 +62,11 @@ BEGIN
           AND  materia_usuario_estado != 'retirada';
     END IF;
 
-END$$
+END recalc$$
 
 DELIMITER ;
 
--- ------------------------------------------------------------
--- Trigger: AFTER UPDATE en nota
--- ------------------------------------------------------------
+-- Trigger AFTER UPDATE en nota
 DROP TRIGGER IF EXISTS trg_actualizar_estado_materia_update;
 
 DELIMITER $$
@@ -83,21 +75,15 @@ CREATE TRIGGER trg_actualizar_estado_materia_update
 AFTER UPDATE ON nota
 FOR EACH ROW
 BEGIN
-    DECLARE v_materia_usuario_id INT UNSIGNED;
-
-    SELECT c.componente_materia_usuario_id
-    INTO   v_materia_usuario_id
-    FROM   componente AS c
-    WHERE  c.componente_id = NEW.nota_componente_id;
-
-    CALL sp_recalcular_estado_materia(v_materia_usuario_id);
+    DECLARE v_mu_id INT UNSIGNED;
+    SELECT componente_materia_usuario_id INTO v_mu_id
+    FROM   componente WHERE componente_id = NEW.nota_componente_id;
+    CALL sp_recalcular_estado_materia(v_mu_id);
 END$$
 
 DELIMITER ;
 
--- ------------------------------------------------------------
--- Trigger: AFTER DELETE en nota
--- ------------------------------------------------------------
+-- Trigger AFTER DELETE en nota
 DROP TRIGGER IF EXISTS trg_actualizar_estado_materia_delete;
 
 DELIMITER $$
@@ -106,14 +92,10 @@ CREATE TRIGGER trg_actualizar_estado_materia_delete
 AFTER DELETE ON nota
 FOR EACH ROW
 BEGIN
-    DECLARE v_materia_usuario_id INT UNSIGNED;
-
-    SELECT c.componente_materia_usuario_id
-    INTO   v_materia_usuario_id
-    FROM   componente AS c
-    WHERE  c.componente_id = OLD.nota_componente_id;
-
-    CALL sp_recalcular_estado_materia(v_materia_usuario_id);
+    DECLARE v_mu_id INT UNSIGNED;
+    SELECT componente_materia_usuario_id INTO v_mu_id
+    FROM   componente WHERE componente_id = OLD.nota_componente_id;
+    CALL sp_recalcular_estado_materia(v_mu_id);
 END$$
 
 DELIMITER ;
