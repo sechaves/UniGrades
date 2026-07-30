@@ -16,12 +16,8 @@ SET @unal_id = (
     WHERE universidad_sigla = 'UNAL' LIMIT 1
 );
 
-SET @prog_isis = (
-    SELECT programa_id FROM programa
-    WHERE programa_universidad_id = @unal_id
-      AND programa_nombre = 'Ingeniería de Sistemas y Computación'
-    LIMIT 1
-);
+-- Usar programa_id directamente (16 = Ingeniería de Sistemas y Computación UNAL)
+SET @prog_isis = 16;
 
 SELECT CONCAT('prog_isis = ', @prog_isis) AS info;
 
@@ -151,9 +147,7 @@ INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, mater
 (@t_disc_op, '2015173', 'Introducción a la Optimización',                         4, NULL, 3.0),
 (@t_disc_op, '2026573', 'Introducción a las CC y a la Programación',             3, NULL, 3.0),
 (@t_disc_op, '2025965', 'Complemento a Teoría de la Computación',                1, NULL, 3.0),
-(@t_disc_op, '2025966', 'Lenguajes de Programación',                              3, NULL, 3.0),
 (@t_disc_op, '2017293', 'Modelación Matemática',                                  3, NULL, 3.0),
-(@t_disc_op, '2025969', 'Modelos Estocásticos',                                   3, NULL, 3.0),
 (@t_disc_op, '2028837', 'Matemáticas del Aprendizaje de Máquinas',               4, NULL, 3.0),
 (@t_disc_op, '2027642', 'Compiladores',                                           3, NULL, 3.0),
 (@t_disc_op, '2016600', 'Gestión Tecnológica',                                    3, NULL, 3.0),
@@ -165,7 +159,7 @@ INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, mater
 (@t_disc_op, '2016615', 'Taller de Invención y Creatividad',                     3, NULL, 3.0),
 (@t_disc_op, '2019082', 'Modelos Matemáticos I',                                  4, NULL, 3.0),
 (@t_disc_op, '2016788', 'Tecnología Digital',                                     3, NULL, 3.0),
--- Fundamentación optativa (también disponible como libre elección)
+-- Fundamentación optativa (disponible como libre elección)
 (@t_disc_op, '2015555', 'Álgebra Lineal Básica',                                  4, NULL, 3.0),
 (@t_disc_op, '2016377', 'Cálculo Diferencial en Una Variable',                    4, NULL, 3.0),
 (@t_disc_op, '2015556', 'Cálculo Integral en Una Variable',                       4, NULL, 3.0),
@@ -173,8 +167,6 @@ INSERT INTO materia (materia_tipologia_id, materia_codigo, materia_nombre, mater
 (@t_disc_op, '2015168', 'Fundamentos de Matemáticas',                             4, NULL, 3.0),
 (@t_disc_op, '2015181', 'Sistemas Numéricos',                                     4, NULL, 3.0),
 (@t_disc_op, '2015178', 'Probabilidad',                                           4, NULL, 3.0),
-(@t_disc_op, '2025963', 'Matemáticas Discretas I (optativa)',                     4, NULL, 3.0),
-(@t_disc_op, '2025964', 'Matemáticas Discretas II (optativa)',                    4, NULL, 3.0),
 (@t_disc_op, '2016047', 'Modelos Económicos Computacionales',                     3, NULL, 3.0);
 
 -- ============================================================
