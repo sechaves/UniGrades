@@ -5,7 +5,6 @@ const auth = require('../middleware/auth.middleware');
 
 router.use(auth);
 
-// Montado en /api/semestres
 // GET  /api/semestres/:id/materias
 router.get('/:id/materias',  ctrl.materiasBySemestre);
 
@@ -14,5 +13,8 @@ router.get('/:id/promedio',  ctrl.promedio);
 
 // POST /api/semestres/:semestre_id/inscribir
 router.post('/:semestre_id/inscribir', ctrl.inscribir);
+
+// DELETE /api/semestres/:id
+router.delete('/:id', ctrl.remove);
 
 module.exports = router;

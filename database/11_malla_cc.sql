@@ -195,4 +195,4 @@ FROM tipologia t
 LEFT JOIN materia m ON m.materia_tipologia_id = t.tipologia_id
 WHERE t.tipologia_programa_id = @prog_cc
 GROUP BY t.tipologia_nombre
-ORDER BY t.tipologia_id;
+ORDER BY t.tipologia_nombre;
