@@ -35,7 +35,12 @@ app.use(cors({
 app.use(express.json());
 
 // ── Health-check (público, debe ir ANTES de las rutas protegidas) ─────────────
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/api/health', (_req, res) => res.json({ 
+  status: 'ok', 
+  timestamp: new Date().toISOString(),
+  version: '2.0',
+  routes: ['/api/materias', '/api/universidades', '/api/auth/login']
+}));
 
 // ── Rutas ─────────────────────────────────────────────────────────────────────
 app.use('/api/auth',            authRoutes);
