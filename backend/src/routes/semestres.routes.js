@@ -1,24 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const semestresController = require('../controllers/semestres.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const ctrl = require('../controllers/semestres.controller');
+const auth = require('../middleware/auth.middleware');
 
-// Todas las rutas requieren autenticación
-router.use(authMiddleware);
+router.use(auth);
 
-// GET /api/usuarios/:id/semestres
-router.get('/:id/semestres', semestresController.listByUsuario);
-
+// Rutas montadas en /api/usuarios
+// GET  /api/usuarios/:id/semestres
 // POST /api/usuarios/:id/semestres
-router.post('/:id/semestres', semestresController.create);
+router.get( '/:id/semestres',  ctrl.listByUsuario);
+router.post('/:id/semestres',  ctrl.create);
 
-// GET /api/semestres/:id/materias
-router.get('/semestres/:id/materias', semestresController.materiasBySemestre);
-
-// GET /api/semestres/:id/promedio
-router.get('/semestres/:id/promedio', semestresController.promedio);
-
-// POST /api/semestres/:semestre_id/inscribir
-router.post('/semestres/:semestre_id/inscribir', semestresController.inscribir);
+// Rutas montadas en /api/semestres (via app.use('/api/semestres', semestresRoutes2))
+// — se manejan en semestres2.routes.js
 
 module.exports = router;

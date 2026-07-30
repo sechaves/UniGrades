@@ -5,6 +5,7 @@ require('dotenv').config();
 const authRoutes          = require('./routes/auth.routes');
 const usuariosRoutes      = require('./routes/usuarios.routes');
 const semestresRoutes     = require('./routes/semestres.routes');
+const semestres2Routes    = require('./routes/semestres2.routes');
 const materiasRoutes      = require('./routes/materias.routes');
 const materiaUsuarioRoutes = require('./routes/materia_usuario.routes');
 const componentesRoutes   = require('./routes/componentes.routes');
@@ -48,8 +49,9 @@ app.use('/api/universidades',   universidadesRoutes);
 app.use('/api/materias',        materiasRoutes);
 app.use('/api/materia-usuario', materiaUsuarioRoutes);
 app.use('/api/usuarios',        usuariosRoutes);
+app.use('/api/usuarios',        semestresRoutes);      // GET/POST /:id/semestres
 app.use('/api/usuarios',        reportesRoutes);
-app.use('/api',                 semestresRoutes);
+app.use('/api/semestres',       semestres2Routes);     // /:id/materias, /:id/promedio, inscribir
 app.use('/api',                 componentesRoutes);
 app.use('/api',                 notasRoutes);
 
