@@ -68,7 +68,16 @@ exports.promedioGlobal = async (req, res, next) => {
       'SELECT * FROM v_promedio_global WHERE usuario_id = ?',
       [id]
     );
-    return res.json({ success: true, data: row || null });
+    // Si la vista devuelve null, retornar estructura con 0s en vez de null
+    return res.json({
+      success: true,
+      data: row || {
+        usuario_id: Number(id),
+        promedio_global: null,
+        total_creditos_cursados: 0,
+        total_creditos_aprobados: 0,
+      },
+    });
   } catch (err) {
     next(err);
   }
