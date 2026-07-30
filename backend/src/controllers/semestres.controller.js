@@ -109,3 +109,18 @@ exports.inscribir = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.remove = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.query(
+      'DELETE FROM semestre WHERE semestre_id = ?',
+      [id]
+    );
+    if (result.affectedRows === 0)
+      return res.status(404).json({ success: false, message: 'Semestre no encontrado.' });
+    return res.json({ success: true, data: { deleted_id: Number(id) } });
+  } catch (err) {
+    next(err);
+  }
+};

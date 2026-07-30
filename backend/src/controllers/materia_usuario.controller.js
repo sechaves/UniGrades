@@ -82,3 +82,25 @@ exports.updateEstado = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.remove = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    // Solo se puede eliminar si está en_curso
+    const [[mu]] = await pool.query(
+      'SELECT materia_usuario_estado FROM materia_usuario WHERE materia_usuario_id = ?',
+      [id]
+    );
+    if (!mu) return res.status(404).json({ success: false, message: 'Materia no encontrada.' });
+    if (mu.materia_usuario_estado !== 'en_curso') {
+      return res.status(422).json({
+        success: false,
+        message: `Solo se puede eliminar una materia en estado "en_curso". Estado actual: "${mu.materia_usuario_estado}".`
+      });
+    }
+    await pool.query('DELETE FROM materia_usuario WHERE materia_usuario_id = ?', [id]);
+    return res.json({ success: true, data: { deleted_id: Number(id) } });
+  } catch (err) {
+    next(err);
+  }
+};

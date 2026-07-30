@@ -12,4 +12,7 @@ router.get('/:id', materiaUsuarioController.getById);
 // PUT /api/materia-usuario/:id/estado
 router.put('/:id/estado', materiaUsuarioController.updateEstado);
 
+// DELETE /api/materia-usuario/:id  (solo en_curso)
+router.delete('/:id', materiaUsuarioController.remove);
+
 module.exports = router;
