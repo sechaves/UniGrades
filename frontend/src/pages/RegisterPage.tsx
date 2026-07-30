@@ -1,12 +1,11 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Select, ListBox, Label } from '@heroui/react'
 import { useAuthContext } from '@/context/AuthContext'
 import { api } from '@/lib/api'
 import type { Universidad, Programa } from '@/types'
 import Input from '@/components/ui/Input'
+import SelectUI from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
-import { Card, CardContent } from '@/components/ui/Card'
 
 export default function RegisterPage() {
   const { register } = useAuthContext()
@@ -18,10 +17,9 @@ export default function RegisterPage() {
     email: '',
     password: '',
     codigo_estudiantil: '',
+    universidad_id: '',
+    programa_id: '',
   })
-  const [universidadId, setUniversidadId] = useState<string>('')
-  const [programaId, setProgramaId] = useState<string>('')
-
   const [universidades, setUniversidades] = useState<Universidad[]>([])
   const [programas, setProgramas] = useState<Programa[]>([])
   const [error, setError] = useState('')
@@ -32,19 +30,20 @@ export default function RegisterPage() {
   }, [])
 
   useEffect(() => {
-    if (!universidadId) { setProgramas([]); return }
-    api.get<Programa[]>(`/universidades/${universidadId}/programas`).then(setProgramas).catch(() => {})
-  }, [universidadId])
+    if (!form.universidad_id) { setProgramas([]); return }
+    setProgramas([])
+    api.get<Programa[]>(`/universidades/${form.universidad_id}/programas`).then(setProgramas).catch(() => {})
+  }, [form.universidad_id])
 
   function set(field: string) {
-    return (e: React.ChangeEvent<HTMLInputElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm(f => ({ ...f, [field]: e.target.value }))
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
-    if (!programaId) { setError('Selecciona un programa académico.'); return }
+    if (!form.programa_id) { setError('Selecciona un programa académico.'); return }
     setLoading(true)
     try {
       await register({
@@ -52,7 +51,7 @@ export default function RegisterPage() {
         apellido: form.apellido,
         email: form.email,
         password: form.password,
-        programa_id: Number(programaId),
+        programa_id: Number(form.programa_id),
         codigo_estudiantil: form.codigo_estudiantil || undefined,
       })
       navigate('/dashboard')
@@ -64,103 +63,95 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <h1 className="text-xl font-semibold text-gray-900 mb-6">Crear cuenta</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Nombre" value={form.nombre} onChange={set('nombre')} required />
-            <Input label="Apellido" value={form.apellido} onChange={set('apellido')} required />
+    <div className="w-full rounded-2xl bg-white shadow-[var(--shadow-elevated)] p-8">
+      <h1 className="text-2xl font-semibold text-pine-900 mb-1">Crear cuenta</h1>
+      <p className="text-sm text-gray-400 mb-6">Completa tus datos para empezar</p>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="Nombre" value={form.nombre} onChange={set('nombre')} placeholder="Sergio" required />
+          <Input label="Apellido" value={form.apellido} onChange={set('apellido')} placeholder="Chaves" required />
+        </div>
+
+        <Input
+          label="Correo electrónico"
+          type="email"
+          value={form.email}
+          onChange={set('email')}
+          placeholder="usuario@unal.edu.co"
+          autoComplete="email"
+          required
+        />
+
+        <Input
+          label="Contraseña"
+          type="password"
+          value={form.password}
+          onChange={set('password')}
+          placeholder="••••••••"
+          autoComplete="new-password"
+          required
+        />
+
+        <Input
+          label="Código estudiantil (opcional)"
+          value={form.codigo_estudiantil}
+          onChange={set('codigo_estudiantil')}
+          placeholder="1014990992"
+        />
+
+        <SelectUI
+          label="Universidad"
+          value={form.universidad_id}
+          onChange={set('universidad_id')}
+          required
+        >
+          <option value="">Selecciona una universidad</option>
+          {universidades.map(u => (
+            <option key={u.universidad_id} value={u.universidad_id}>
+              {u.universidad_nombre}
+            </option>
+          ))}
+        </SelectUI>
+
+        <SelectUI
+          label="Programa académico"
+          value={form.programa_id}
+          onChange={set('programa_id')}
+          disabled={!form.universidad_id || programas.length === 0}
+          required
+        >
+          <option value="">
+            {!form.universidad_id
+              ? 'Primero selecciona una universidad'
+              : programas.length === 0
+              ? 'Cargando programas…'
+              : 'Selecciona un programa'}
+          </option>
+          {programas.map(p => (
+            <option key={p.programa_id} value={p.programa_id}>
+              {p.programa_nombre}
+            </option>
+          ))}
+        </SelectUI>
+
+        {error && (
+          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+            {error}
           </div>
-          <Input
-            label="Correo electrónico"
-            type="email"
-            value={form.email}
-            onChange={set('email')}
-            autoComplete="email"
-            required
-          />
-          <Input
-            label="Contraseña"
-            type="password"
-            value={form.password}
-            onChange={set('password')}
-            autoComplete="new-password"
-            required
-          />
-          <Input
-            label="Código estudiantil (opcional)"
-            value={form.codigo_estudiantil}
-            onChange={set('codigo_estudiantil')}
-          />
+        )}
 
-          {/* HeroUI Select — Universidad */}
-          <div className="flex flex-col gap-1">
-            <Select
-              placeholder="Selecciona una universidad"
-              selectedKey={universidadId}
-              onSelectionChange={key => {
-                setUniversidadId(String(key ?? ''))
-                setProgramaId('')
-              }}
-            >
-              <Label>Universidad</Label>
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  {universidades.map(u => (
-                    <ListBox.Item key={String(u.universidad_id)} id={String(u.universidad_id)} textValue={u.universidad_nombre}>
-                      {u.universidad_nombre}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
-          </div>
+        <Button type="submit" loading={loading} size="lg" className="mt-1 w-full">
+          Crear cuenta
+        </Button>
+      </form>
 
-          {/* HeroUI Select — Programa */}
-          <div className="flex flex-col gap-1">
-            <Select
-              placeholder={!universidadId ? 'Primero selecciona una universidad' : 'Selecciona un programa'}
-              isDisabled={!universidadId || programas.length === 0}
-              selectedKey={programaId}
-              onSelectionChange={key => setProgramaId(String(key ?? ''))}
-            >
-              <Label>Programa académico</Label>
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  {programas.map(p => (
-                    <ListBox.Item key={String(p.programa_id)} id={String(p.programa_id)} textValue={p.programa_nombre}>
-                      {p.programa_nombre}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </Select.Popover>
-            </Select>
-          </div>
-
-          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-
-          <Button type="submit" loading={loading} size="lg" className="mt-2">
-            Crear cuenta
-          </Button>
-        </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
-          ¿Ya tienes cuenta?{' '}
-          <Link to="/login" className="text-brand-600 hover:underline">
-            Inicia sesión
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+      <p className="mt-5 text-center text-sm text-gray-400">
+        ¿Ya tienes cuenta?{' '}
+        <Link to="/login" className="text-brand-600 font-medium hover:underline">
+          Inicia sesión
+        </Link>
+      </p>
+    </div>
   )
 }
