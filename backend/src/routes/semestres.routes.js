@@ -7,10 +7,10 @@ const authMiddleware = require('../middleware/auth.middleware');
 router.use(authMiddleware);
 
 // GET /api/usuarios/:id/semestres
-router.get('/usuarios/:id/semestres', semestresController.listByUsuario);
+router.get('/:id/semestres', semestresController.listByUsuario);
 
 // POST /api/usuarios/:id/semestres
-router.post('/usuarios/:id/semestres', semestresController.create);
+router.post('/:id/semestres', semestresController.create);
 
 // GET /api/semestres/:id/materias
 router.get('/semestres/:id/materias', semestresController.materiasBySemestre);

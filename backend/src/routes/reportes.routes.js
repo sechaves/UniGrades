@@ -6,9 +6,9 @@ const auth = require('../middleware/auth.middleware');
 router.use(auth);
 
 // GET /api/usuarios/:id/reportes/semestres
-router.get('/usuarios/:id/reportes/semestres', ctrl.promedioSemestres);
+router.get('/:id/reportes/semestres', ctrl.promedioSemestres);
 
 // GET /api/usuarios/:id/reportes/tipologia/:tipologia_id
-router.get('/usuarios/:id/reportes/tipologia/:tipologia_id', ctrl.creditosTipologia);
+router.get('/:id/reportes/tipologia/:tipologia_id', ctrl.creditosTipologia);
 
 module.exports = router;

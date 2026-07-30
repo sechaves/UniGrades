@@ -45,13 +45,13 @@ app.get('/api/health', (_req, res) => res.json({
 // ── Rutas ─────────────────────────────────────────────────────────────────────
 app.use('/api/auth',            authRoutes);
 app.use('/api/universidades',   universidadesRoutes);
-app.use('/api/materias',        materiasRoutes);        // ← antes de /api genérico
-app.use('/api/materia-usuario', materiaUsuarioRoutes);  // ← antes de /api genérico
-app.use('/api',                 usuariosRoutes);
+app.use('/api/materias',        materiasRoutes);
+app.use('/api/materia-usuario', materiaUsuarioRoutes);
+app.use('/api/usuarios',        usuariosRoutes);
+app.use('/api/usuarios',        reportesRoutes);
 app.use('/api',                 semestresRoutes);
 app.use('/api',                 componentesRoutes);
 app.use('/api',                 notasRoutes);
-app.use('/api',                 reportesRoutes);
 
 // ── Error handler (debe ir al final) ─────────────────────────────────────────
 app.use(errorMiddleware);
