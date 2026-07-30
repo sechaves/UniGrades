@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, BookMarked, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { Select, ListBox, Label, Separator, Header } from '@heroui/react'
 import { useAuthContext } from '@/context/AuthContext'
 import { useMateriasBySemestre, useInscribirMateria, useMateriasPrograma } from '@/hooks/useMaterias'
 import { useSemestres } from '@/hooks/useSemestres'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
+import SelectUI from '@/components/ui/Select'
 import { EstadoBadge } from '@/components/ui/Badge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { MateriaEstado } from '@/types'
@@ -175,7 +175,7 @@ export default function SemestrePage() {
       {/* Modal inscribir */}
       <Modal open={modalOpen} onClose={closeModal} title="Inscribir materia">
         <form onSubmit={handleInscribir} className="flex flex-col gap-4">
-          <Select
+          <SelectUI
             label="Materia"
             value={materiaId}
             onChange={e => setMateriaId(e.target.value)}
@@ -194,7 +194,7 @@ export default function SemestrePage() {
                 [{m.materia_semestre_sugerido ?? '?'}] {m.materia_nombre} ({m.materia_creditos} cr.)
               </option>
             ))}
-          </Select>
+          </SelectUI>
 
           {disponibles.length === 0 && !loadingMaterias && (
             <div className="rounded-xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-amber-700">
