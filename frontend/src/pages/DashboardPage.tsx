@@ -18,14 +18,15 @@ import { SkeletonCard } from '@/components/ui/Skeleton'
 function useCountUp(target: number, decimals = 0, duration = 1.1) {
   const [value, setValue] = useState(0)
   useEffect(() => {
-    const controls = animate(0, target, {
+    const safeTarget = Number(target) || 0
+    const controls = animate(0, safeTarget, {
       duration,
       ease: [0.16, 1, 0.3, 1],
-      onUpdate: (v) => setValue(v),
+      onUpdate: (v) => setValue(Number(v) || 0),
     })
     return () => controls.stop()
   }, [target, duration]) // eslint-disable-line react-hooks/exhaustive-deps
-  return value.toFixed(decimals)
+  return (Number(value) || 0).toFixed(decimals)
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -70,7 +71,7 @@ function ProgressSeal({ value, max = 5 }: { value: number; max?: number }) {
           {displayed}
         </span>
         <span className="mt-1.5 text-[11px] font-mono uppercase tracking-[0.14em] text-gray-400">
-          PAPA · /{max.toFixed(0)}
+          PAPA · /{Number(max).toFixed(0)}
         </span>
       </div>
     </div>
